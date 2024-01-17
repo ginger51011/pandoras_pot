@@ -3,6 +3,7 @@ name = "pandoras_pot"
 version = "0.1.0"
 authors = ["Emil Jonathan Eriksso @ginger51011"]
 edition = "2021"
+license = "AGPL-3.0-only"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
