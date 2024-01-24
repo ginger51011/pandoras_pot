@@ -43,6 +43,6 @@ impl Iterator for PandorasGenerator {
         let mut rng = thread_rng();
         let size = rng.gen_range(self.chunk_size_range.to_owned());
         let s = Alphanumeric.sample_string(&mut rng, size);
-        Some(format! {"<p>\n{s}\n</p>"})
+        Some(format! {"<p>\n{s}\n</p>\n"})
     }
 }
