@@ -21,3 +21,4 @@ axum-streams = { version = "0.12", features=["text"] }
 futures = "0.3.30"
 serde = { version = "1.0", features = [ "derive" ]}
 toml = "0.8.8"
+home = "0.5.9"

@@ -1,12 +1,38 @@
 //! This module contains the types used for configuration.
+
+use std::path::{Path, PathBuf};
+
 use serde::{Deserialize, Serialize};
 
-const DEFAULT_CONFIG_PATH: &str = concat!(env!("CARGO_HOME"), "/config/pandoras_pot/config.toml");
+use home;
+use toml;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub(crate) struct Config {
     pub http: HttpConfig,
     pub generator: GeneratorConfig,
+}
+
+impl Config {
+    pub fn default_path() -> Option<PathBuf> {
+        let mut dir = home::home_dir()?;
+        dir.push(".config/pandoras_pot/config.toml");
+        Some(dir)
+    }
+
+    pub fn from_path(path: &Path) -> Option<Self> {
+        let toml = std::fs::read_to_string(path).ok()?;
+        let config = toml::from_str(&toml).ok()?;
+        config
+    }
+
+    pub fn read_from_default_path() -> Option<Self> {
+        if let Some(path) = Self::default_path() {
+            Self::from_path(&path)
+        } else {
+            None
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
