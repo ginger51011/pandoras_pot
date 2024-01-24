@@ -39,39 +39,63 @@ impl Config {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct HttpConfig {
+    /// Port to listen on.
+    #[serde(default = "default_port")]
+    pub port: String,
     /// Routes to be handled. Is overriden by `catch_all`.
-    #[serde(default)]
+    #[serde(default = "default_routes")]
     pub routes: Vec<String>,
     /// If all routes are to be served.
-    #[serde(default)]
+    #[serde(default = "default_catch_all")]
     pub catch_all: bool,
 }
 
 impl Default for HttpConfig {
     fn default() -> Self {
         Self {
-            routes: vec![String::from("/")],
-            catch_all: true,
+            port: default_port(),
+            routes: default_routes(),
+            catch_all: default_catch_all(),
         }
     }
+}
+
+fn default_port() -> String {
+    "8080".to_string()
+}
+
+fn default_routes() -> Vec<String> {
+    vec!["/".to_string()]
+}
+
+fn default_catch_all() -> bool {
+    true
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct GeneratorConfig {
     // The minimum possible length of a generated string segment
-    #[serde(default)]
+    #[serde(default = "default_min_chunk_size")]
     pub min_chunk_size: usize,
 
     // The maximum possible length of a generated string segment
-    #[serde(default)]
+    #[serde(default = "default_max_chunk_size")]
     pub max_chunk_size: usize,
 }
 
 impl Default for GeneratorConfig {
     fn default() -> Self {
         Self {
-            min_chunk_size: 1024,
-            max_chunk_size: 8000,
+            min_chunk_size: default_min_chunk_size(),
+            max_chunk_size: default_max_chunk_size(),
         }
     }
+}
+
+fn default_min_chunk_size() -> usize {
+    1024
+}
+
+fn default_max_chunk_size() -> usize {
+    8000
 }

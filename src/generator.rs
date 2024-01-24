@@ -21,7 +21,12 @@ impl PandorasGenerator {
     }
 
     pub fn to_stream(&self) -> impl stream::Stream<Item = String> {
-        stream::iter(self.clone())
+        // Add some initial tags
+        let initial_tags = vec![String::from("<html>\n<body>\n")];
+
+        // Chain them, so we always start with some valid initial tags
+        let iter = initial_tags.into_iter().chain(self.clone());
+        stream::iter(iter)
     }
 }
 

@@ -49,17 +49,22 @@ async fn main() {
     if config.http.catch_all {
         // Since we have no other routes now, all will be passed to the fallback
         app = app.fallback(get(move || text_stream(gen)));
+        println!("Catch-All enabled");
     } else if !config.http.routes.is_empty() {
-        for route in config.http.routes {
+        for route in &config.http.routes {
             let gen = gen.clone();
             app = app.route(&route, get(move || text_stream(gen)));
         }
+        println!("Listening on routes: {}", config.http.routes.join(", "));
     } else {
         println!("http.catch_all was disabled, but no routes was provided!");
         exit(1);
     }
 
-    let listener = TcpListener::bind("127.0.0.1:8080").await.unwrap();
+    let listener = TcpListener::bind(format!("localhost:{}", config.http.port))
+        .await
+        .unwrap();
+    println!("Listening on port {}", config.http.port);
 
     axum::serve(listener, app).await.unwrap();
 }
