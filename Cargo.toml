@@ -1,10 +1,23 @@
 [package]
 name = "pandoras_pot"
 version = "0.1.0"
-authors = ["Emil Jonathan Eriksso @ginger51011"]
+authors = ["Emil Jonathan Eriksso <github.com/ginger51011>"]
 edition = "2021"
 license = "AGPL-3.0-only"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+# We want it real fast
+[profile.release]
+lto = true
+opt-level = 3
+codegen-units = 1
+
 [dependencies]
+rand = "0.8"
+tokio = { version = "1", features = ["full"] }
+axum = { version = "0.7", default-features = false, features = ["http1", "http2", "matched-path", "original-uri", "tokio", "tower-log", "tracing"]}
+axum-streams = { version = "0.12", features=["text"] }
+futures = "0.3.30"
+serde = { version = "1.0", features = [ "derive" ]}
+toml = "0.8.8"

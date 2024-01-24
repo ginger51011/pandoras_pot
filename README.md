@@ -8,6 +8,5 @@ The goal with `pandoras_pot` is to have maximum data output, while not using up
 all the resources of your webserver that probably could be doing better things
 with its time.
 
-To ensure that bots don't detect `pandoras_pot`, it uses Markov chains to
-generate data based on *The Sorrows of Young Werther*. This will hopefully keep
-them both busy and educated.
+To ensure that bots don't detect `pandoras_pot`, it generates random data that kind
+of looks like a website (to a bot), really *really* fast. Like crazy fast.
