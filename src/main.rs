@@ -29,7 +29,7 @@ async fn main() {
         config = Config::read_from_default_path().unwrap_or_else(|| match Config::default_path() {
             Some(pb) => {
                 println!(
-                    "No default config found at '{}', using a default instead...",
+                    "No config found at '{}', using a default instead...",
                     pb.to_string_lossy(),
                 );
                 Config::default()

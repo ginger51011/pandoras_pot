@@ -9,7 +9,9 @@ use toml;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub(crate) struct Config {
+    #[serde(default)]
     pub http: HttpConfig,
+    #[serde(default)]
     pub generator: GeneratorConfig,
 }
 
@@ -38,8 +40,10 @@ impl Config {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct HttpConfig {
     /// Routes to be handled. Is overriden by `catch_all`.
+    #[serde(default)]
     pub routes: Vec<String>,
     /// If all routes are to be served.
+    #[serde(default)]
     pub catch_all: bool,
 }
 
@@ -55,9 +59,11 @@ impl Default for HttpConfig {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct GeneratorConfig {
     // The minimum possible length of a generated string segment
+    #[serde(default)]
     pub min_chunk_size: usize,
 
     // The maximum possible length of a generated string segment
+    #[serde(default)]
     pub max_chunk_size: usize,
 }
 
