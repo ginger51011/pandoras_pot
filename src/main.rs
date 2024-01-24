@@ -59,7 +59,7 @@ async fn main() {
         exit(1);
     }
 
-    let listener = TcpListener::bind(format!("localhost:{}", config.http.port))
+    let listener = TcpListener::bind(format!("0.0.0.0:{}", config.http.port))
         .await
         .unwrap();
     println!("Listening on port {}", config.http.port);
