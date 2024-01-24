@@ -2,3 +2,6 @@
 
 # Superior editor with superior sessions
 *.vim
+
+# Custom config, for use in for example docker
+config.toml
