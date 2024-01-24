@@ -15,7 +15,7 @@ of looks like a website (to a bot), really *really* fast. Like crazy fast.
 
 The easiest way to set up `pandoras_pot` is using docker. You can optionally
 pass an argument to a config file using the docker `--build-arg CONFIG=<path to
-your config>` flag.
+your config>` flag (but it should be available in the build context).
 
 To build an image and deploy it, here naming and tagging it with `pandoras_pot`
 and making it available on port `localhost:6669`, you can run the following:
