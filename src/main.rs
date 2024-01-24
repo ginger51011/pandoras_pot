@@ -20,13 +20,11 @@ async fn main() {
     // Who needs clap
     let args: Vec<String> = std::env::args().collect();
 
-    let config: Config;
-
-    if args.len() > 1 {
+    let config: Config = if args.len() > 1 {
         let pb = PathBuf::from(args[1].clone());
-        config = Config::from_path(&pb).unwrap();
+        Config::from_path(&pb).unwrap()
     } else {
-        config = Config::read_from_default_path().unwrap_or_else(|| match Config::default_path() {
+        Config::read_from_default_path().unwrap_or_else(|| match Config::default_path() {
             Some(pb) => {
                 println!(
                     "No config found at '{}', using a default instead...",
@@ -40,8 +38,8 @@ async fn main() {
                 );
                 Config::default()
             }
-        });
-    }
+        })
+    };
 
     let gen = PandorasGenerator::default();
     let mut app = Router::new();
@@ -53,7 +51,7 @@ async fn main() {
     } else if !config.http.routes.is_empty() {
         for route in &config.http.routes {
             let gen = gen.clone();
-            app = app.route(&route, get(move || text_stream(gen)));
+            app = app.route(route, get(move || text_stream(gen)));
         }
         println!("Listening on routes: {}", config.http.routes.join(", "));
     } else {

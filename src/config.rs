@@ -4,13 +4,14 @@ use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 
-use home;
-use toml;
-
+/// Configuration for `pandoras_pot`.
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub(crate) struct Config {
+    /// Configuration related to HTTP server.
     #[serde(default)]
     pub http: HttpConfig,
+
+    /// Configuration related to generator creating HTML.
     #[serde(default)]
     pub generator: GeneratorConfig,
 }
@@ -24,8 +25,7 @@ impl Config {
 
     pub fn from_path(path: &Path) -> Option<Self> {
         let toml = std::fs::read_to_string(path).ok()?;
-        let config = toml::from_str(&toml).ok()?;
-        config
+        toml::from_str(&toml).ok()
     }
 
     pub fn read_from_default_path() -> Option<Self> {

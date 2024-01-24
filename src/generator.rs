@@ -41,7 +41,8 @@ impl Iterator for PandorasGenerator {
 
     fn next(&mut self) -> Option<Self::Item> {
         let mut rng = thread_rng();
-        let size = (&mut rng).gen_range(self.chunk_size_range.to_owned());
-        Some(Alphanumeric.sample_string(&mut rng, size))
+        let size = rng.gen_range(self.chunk_size_range.to_owned());
+        let s = Alphanumeric.sample_string(&mut rng, size);
+        Some(format! {"<p>\n{s}\n</p>"})
     }
 }
