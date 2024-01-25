@@ -10,7 +10,6 @@ use config::Config;
 use generators::{Generator, PandorasGenerator};
 use std::{fs, path::PathBuf, process::exit};
 use tokio::net::TcpListener;
-use tracing;
 use tracing_subscriber::prelude::*;
 
 /// Uses `gen` to stream an infinite text stream.

@@ -23,7 +23,7 @@ impl tower_http::trace::OnRequest<Body> for RequestHandler {
         // It's ok if this takes a little time (compiled Rust wont), since the real fun begins
         // later
         let mut client_ip = None;
-        for header_name in vec![
+        for header_name in [
             "CF-Connecting-IP",
             "X-Forwarded-For",
             "X-Real-IP",
