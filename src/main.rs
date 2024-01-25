@@ -1,18 +1,14 @@
 #![forbid(unsafe_code)]
 mod config;
-mod generator;
+mod generators;
+mod handlers;
 
-use axum::http::HeaderMap;
-use axum::response::IntoResponse;
-use axum::routing::*;
-use axum::Router;
+use crate::handlers::{EosHandler, RequestHandler};
+use axum::{http::HeaderMap, response::IntoResponse, routing::*, Router};
 use axum_streams::StreamBodyAs;
 use config::Config;
-use generator::Generator;
-use generator::PandorasGenerator;
-use std::fs;
-use std::path::PathBuf;
-use std::process::exit;
+use generators::{Generator, PandorasGenerator};
+use std::{fs, path::PathBuf, process::exit};
 use tokio::net::TcpListener;
 use tracing;
 use tracing_subscriber::prelude::*;
@@ -69,7 +65,7 @@ async fn main() {
         .with(pretty)
         .with(ugly);
 
-    let json_log = config.logging.output_path.and_then(|output_path| {
+    let json_log = config.logging.output_path.map(|output_path| {
         match fs::OpenOptions::new()
             .write(true)
             .append(true)
@@ -78,7 +74,7 @@ async fn main() {
         {
             Ok(file) => {
                 let json_log = tracing_subscriber::fmt::layer().json().with_writer(file);
-                Some(json_log)
+                json_log
             }
             Err(e) => {
                 println!(
@@ -113,7 +109,9 @@ async fn main() {
     }
 
     // Add tracing to as a layer to our app
-    let trace_layer = tower_http::trace::TraceLayer::new_for_http();
+    let trace_layer = tower_http::trace::TraceLayer::new_for_http()
+        .on_request(RequestHandler::new())
+        .on_eos(EosHandler::new());
     app = app.layer(trace_layer);
 
     let listener = TcpListener::bind(format!("0.0.0.0:{}", config.http.port))
