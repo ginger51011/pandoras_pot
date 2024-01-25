@@ -8,7 +8,7 @@
 
 ## Summary
 Inspired by [HellPot](https://github.com/yunginnanet/HellPot), `pandoras_pot`
-aims to bring even more misery on unruly web crawlers that doesn't respect your
+aims to bring even more misery on unruly web crawlers that don't respect your
 `robots.txt`.
 
 The goal with `pandoras_pot` is to have maximum data output, while not using up
@@ -16,7 +16,8 @@ all the resources of your webserver that probably could be doing better things
 with its time.
 
 To ensure that bots don't detect `pandoras_pot`, it generates random data that kind
-of looks like a website (to a bot), really *really* fast. Like crazy fast.
+of looks like a website (to a bot), really *really* fast. Like crazy fast. One could even
+say blazingly fast. *Hopefully*.
 
 ## Setting it up
 
@@ -37,6 +38,29 @@ Disallow: /.env
 ```
 
 Common reverse proxies include `nginx`, `httpd` (apache), and `Caddy`.
+
+In Caddy you could add the following to match the `/robots.txt` we have already created:
+
+```Caddyfile
+(pandorust) {
+    @pandorust_paths {
+        path /wp-login.php /.git* /.env*
+    }
+    handle @pandorust_paths {
+        reverse_proxy localhost:6669 # Or whatever you run pandoras_pot on
+    }
+}
+
+# ...
+
+example.com {
+    # ...
+    # Your actual website
+    # ...
+
+    import pandorust
+}
+```
 
 After this you can simply run (if you installed using `cargo install pandoras_pot`):
 
