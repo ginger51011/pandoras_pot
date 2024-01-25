@@ -1,5 +1,12 @@
-# `pandoras_pot` - Unleash Unfathomable Curses on Unsuspecting Bots... In Rust!
+<div align="center">
+    <h1>pandoras_pot</h1>
+    <i>Unleash Unfathomable Curses on Unsuspecting Bots... In Rust!</i>
+    <br />
+    [![Crates.io (pandoras_pot)](https://img.shields.io/crates/v/pandoras_pot)](https://crates.io/crates/cvars)
+</div>
+<br />
 
+## Summary
 Inspired by [HellPot](https://github.com/yunginnanet/HellPot), `pandoras_pot`
 aims to bring even more misery on unruly web crawlers that doesn't respect your
 `robots.txt`.
