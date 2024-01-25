@@ -1,9 +1,11 @@
 #![forbid(unsafe_code)]
+use axum::http::HeaderMap;
 use axum::response::IntoResponse;
 use axum::routing::*;
 use axum::Router;
 use axum_streams::StreamBodyAs;
 use config::Config;
+use generator::Generator;
 use generator::PandorasGenerator;
 use tokio::net::TcpListener;
 mod config;
@@ -11,8 +13,17 @@ mod generator;
 use std::path::PathBuf;
 use std::process::exit;
 
-async fn text_stream(gen: PandorasGenerator) -> impl IntoResponse {
+/// Uses `gen` to stream an infinite text stream.
+///
+/// Sets some headers, like `Content-Type` automatically.
+async fn text_stream<T: Generator + 'static>(gen: T) -> impl IntoResponse {
+    // Set some headers to trick le bots
+    let mut headers = HeaderMap::new();
+    headers.insert("Content-Type:", "text/html; charset=utf-8".parse().unwrap());
+
     StreamBodyAs::text(gen.to_stream())
+        .headers(headers)
+        .into_response()
 }
 
 #[tokio::main]

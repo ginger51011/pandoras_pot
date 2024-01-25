@@ -6,6 +6,16 @@ use rand::{thread_rng, Rng};
 
 use crate::config::GeneratorConfig;
 
+/// Trait that describes a generator that can be converted to a stream,
+/// outputting (probably infinite) amounts of very useful strings.
+pub trait Generator {
+    /// Creates the generator from a config.
+    fn from_config(config: GeneratorConfig) -> Self;
+
+    /// Converts the generator to a stream of text.
+    fn to_stream(self) -> impl stream::Stream<Item = String> + Send;
+}
+
 #[derive(Clone, Debug)]
 pub(crate) struct PandorasGenerator {
     // The range of length for each generated string segment (not
@@ -13,14 +23,14 @@ pub(crate) struct PandorasGenerator {
     chunk_size_range: std::ops::Range<usize>,
 }
 
-impl PandorasGenerator {
-    pub fn new(config: GeneratorConfig) -> Self {
+impl Generator for PandorasGenerator {
+    fn from_config(config: GeneratorConfig) -> Self {
         Self {
             chunk_size_range: config.min_chunk_size..config.max_chunk_size,
         }
     }
 
-    pub fn to_stream(&self) -> impl stream::Stream<Item = String> {
+    fn to_stream(self) -> impl stream::Stream<Item = String> {
         // Add some initial tags
         let initial_tags = vec![String::from("<html>\n<body>\n")];
 
@@ -32,7 +42,7 @@ impl PandorasGenerator {
 
 impl Default for PandorasGenerator {
     fn default() -> Self {
-        Self::new(GeneratorConfig::default())
+        Self::from_config(GeneratorConfig::default())
     }
 }
 
