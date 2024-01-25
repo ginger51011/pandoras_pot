@@ -38,14 +38,29 @@ Disallow: /.env
 
 Common reverse proxies include `nginx`, `httpd` (apache), and `Caddy`.
 
+After this you can simply run (if you installed using `cargo install pandoras_pot`):
+
+```sh
+pandoras_pot
+```
+
+Done!
+
 ### Using Docker
 
 The easiest way to set up `pandoras_pot` is using docker. You can optionally
 pass an argument to a config file using the docker `--build-arg CONFIG=<path to
 your config>` flag (but it should be available in the build context).
 
-To build an image and deploy it, here naming and tagging it with `pandoras_pot`
-and making it available on port `localhost:6669`, you can run the following:
+Start by cloning the repo by running
+
+```sh
+git clone git@github.com:ginger51011/pandoras_pot.git
+cd pandoras_pot
+```
+
+Then you can build an image and deploy it, here naming and tagging it with `pandoras_pot`
+and making it available on port `localhost:6669`:
 
 ```sh
 docker build -t pandoras_pot . # You can add --build-arg CONFIG=<...> here
@@ -58,7 +73,7 @@ docker run --name=pandoras_pot --restart=always -p 6669:8080 -d pandoras_pot
 you can either pass a config like an argument like so:
 
 ```sh
-./pandoras_pot <path-to-config>
+pandoras_pot <path-to-config>
 ```
 
 or put it in a file at `$HOME/.config/pandoras_pot/config.toml`.
