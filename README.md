@@ -1,10 +1,10 @@
 <div align="center">
-    <h1>pandoras_pot</h1>
+    <h1>🔥pandoras_pot🍯</h1>
     <i>Unleash Unfathomable Curses on Unsuspecting Bots... In Rust!</i>
-    <br />
-    [![Crates.io (pandoras_pot)](https://img.shields.io/crates/v/pandoras_pot)](https://crates.io/crates/cvars)
 </div>
 <br />
+
+[![Crates.io (pandoras_pot)](https://img.shields.io/crates/v/pandoras_pot)](https://crates.io/crates/cvars)
 
 ## Summary
 Inspired by [HellPot](https://github.com/yunginnanet/HellPot), `pandoras_pot`
