@@ -56,7 +56,9 @@ async fn main() {
     };
 
     // Set up tracing
-    let (pretty, ugly) = if config.logging.print_pretty_logs {
+    let (pretty, ugly) = if config.logging.no_stdout {
+        (None, None)
+    } else if config.logging.print_pretty_logs {
         (Some(tracing_subscriber::fmt::layer().pretty()), None)
     } else {
         (None, Some(tracing_subscriber::fmt::layer()))

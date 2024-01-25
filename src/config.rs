@@ -113,6 +113,11 @@ pub(crate) struct LoggingConfig {
     /// If pretty logs should be written to standard output.
     #[serde(default = "default_print_pretty_logs")]
     pub print_pretty_logs: bool,
+
+    /// If no logs at all should be printed to stdout. Overrides other stdout logging
+    /// settings.
+    #[serde(default = "default_no_stdout")]
+    pub no_stdout: bool,
 }
 
 impl Default for LoggingConfig {
@@ -120,6 +125,7 @@ impl Default for LoggingConfig {
         Self {
             output_path: default_output_path(),
             print_pretty_logs: default_print_pretty_logs(),
+            no_stdout: default_no_stdout(),
         }
     }
 }
@@ -130,4 +136,8 @@ fn default_output_path() -> Option<String> {
 
 fn default_print_pretty_logs() -> bool {
     true
+}
+
+fn default_no_stdout() -> bool {
+    false
 }
