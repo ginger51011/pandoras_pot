@@ -1,4 +1,7 @@
 #![forbid(unsafe_code)]
+mod config;
+mod generator;
+
 use axum::http::HeaderMap;
 use axum::response::IntoResponse;
 use axum::routing::*;
@@ -7,11 +10,9 @@ use axum_streams::StreamBodyAs;
 use config::Config;
 use generator::Generator;
 use generator::PandorasGenerator;
-use tokio::net::TcpListener;
-mod config;
-mod generator;
 use std::path::PathBuf;
 use std::process::exit;
+use tokio::net::TcpListener;
 
 /// Uses `gen` to stream an infinite text stream.
 ///
@@ -19,7 +20,7 @@ use std::process::exit;
 async fn text_stream<T: Generator + 'static>(gen: T) -> impl IntoResponse {
     // Set some headers to trick le bots
     let mut headers = HeaderMap::new();
-    headers.insert("Content-Type:", "text/html; charset=utf-8".parse().unwrap());
+    headers.insert("Content-Type", "text/html; charset=utf-8".parse().unwrap());
 
     StreamBodyAs::text(gen.to_stream())
         .headers(headers)
