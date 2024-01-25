@@ -36,10 +36,10 @@ async fn main() {
             Some(actual) => actual,
             None => {
                 println!(
-                    "File at '{}' could not be parsed as proper config, using default instead...",
+                    "File at '{}' could not be parsed as proper config",
                     pb.to_string_lossy()
                 );
-                Config::default()
+                exit(14);
             }
         }
     } else {

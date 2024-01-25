@@ -16,6 +16,7 @@ pub(crate) struct Config {
     pub generator: GeneratorConfig,
 
     /// Configuration related to logs.
+    #[serde(default)]
     pub logging: LoggingConfig,
 }
 
@@ -140,4 +141,30 @@ fn default_print_pretty_logs() -> bool {
 
 fn default_no_stdout() -> bool {
     false
+}
+
+#[cfg(test)]
+mod test {
+    use super::Config;
+
+    #[test]
+    fn deserialize_incomplete_config() {
+        let toml_str = r#"
+            [http]
+            port = "7796"
+            routes = ["/wp-login.php"]
+            catch_all = false
+
+            [generator]
+            min_chunk_size = 8000
+            max_chunk_size = 16000
+        "#;
+
+        toml::from_str::<Config>(toml_str).unwrap();
+    }
+
+    #[test]
+    fn deserialize_empty_config() {
+        toml::from_str::<Config>("").unwrap();
+    }
 }
