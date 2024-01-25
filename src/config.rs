@@ -14,6 +14,9 @@ pub(crate) struct Config {
     /// Configuration related to generator creating HTML.
     #[serde(default)]
     pub generator: GeneratorConfig,
+
+    /// Configuration related to logs.
+    pub logging: LoggingConfig,
 }
 
 impl Config {
@@ -74,11 +77,11 @@ fn default_catch_all() -> bool {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct GeneratorConfig {
-    // The minimum possible length of a generated string segment
+    /// The minimum possible length of a generated string segment
     #[serde(default = "default_min_chunk_size")]
     pub min_chunk_size: usize,
 
-    // The maximum possible length of a generated string segment
+    /// The maximum possible length of a generated string segment
     #[serde(default = "default_max_chunk_size")]
     pub max_chunk_size: usize,
 }
@@ -98,4 +101,33 @@ fn default_min_chunk_size() -> usize {
 
 fn default_max_chunk_size() -> usize {
     8000
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub(crate) struct LoggingConfig {
+    /// Output file for logs. Will not write to logs if
+    /// disabled.
+    #[serde(default = "default_output_path")]
+    pub output_path: Option<String>,
+
+    /// If pretty logs should be written to standard output.
+    #[serde(default = "default_print_pretty_logs")]
+    pub print_pretty_logs: bool,
+}
+
+impl Default for LoggingConfig {
+    fn default() -> Self {
+        Self {
+            output_path: default_output_path(),
+            print_pretty_logs: default_print_pretty_logs(),
+        }
+    }
+}
+
+fn default_output_path() -> Option<String> {
+    None
+}
+
+fn default_print_pretty_logs() -> bool {
+    true
 }
