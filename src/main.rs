@@ -31,7 +31,17 @@ async fn main() {
     let args: Vec<String> = std::env::args().collect();
     let config: Config = if args.len() > 1 {
         let pb = PathBuf::from(args[1].clone());
-        Config::from_path(&pb).unwrap()
+        let c = Config::from_path(&pb);
+        match c {
+            Some(actual) => actual,
+            None => {
+                println!(
+                    "File at '{}' could not be parsed as proper config, using default instead...",
+                    pb.to_string_lossy()
+                );
+                Config::default()
+            }
+        }
     } else {
         Config::read_from_default_path().unwrap_or_else(|| match Config::default_path() {
             Some(pb) => {

@@ -5,3 +5,5 @@
 
 # Custom config, for use in for example docker
 config.toml
+
+*.log
