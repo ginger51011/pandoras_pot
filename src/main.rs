@@ -71,9 +71,9 @@ async fn main() {
 
     let json_log = config.logging.output_path.and_then(|output_path| {
         match fs::OpenOptions::new()
-            .create_new(true)
             .write(true)
             .append(true)
+            .create(true)
             .open(&output_path)
         {
             Ok(file) => {
@@ -111,6 +111,10 @@ async fn main() {
         tracing::info!("http.catch_all was disabled, but no routes was provided!");
         exit(1);
     }
+
+    // Add tracing to as a layer to our app
+    let trace_layer = tower_http::trace::TraceLayer::new_for_http();
+    app = app.layer(trace_layer);
 
     let listener = TcpListener::bind(format!("0.0.0.0:{}", config.http.port))
         .await
