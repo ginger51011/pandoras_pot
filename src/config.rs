@@ -131,7 +131,7 @@ impl Default for LoggingConfig {
 }
 
 fn default_output_path() -> Option<String> {
-    None
+    Some("pandoras.log".to_string())
 }
 
 fn default_print_pretty_logs() -> bool {

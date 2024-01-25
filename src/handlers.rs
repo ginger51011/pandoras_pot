@@ -17,13 +17,35 @@ impl RequestHandler {
 
 impl tower_http::trace::OnRequest<Body> for RequestHandler {
     fn on_request(&mut self, request: &Request<Body>, _: &Span) {
-        let client_ip = request
-            .headers()
-            .get("X-Forwarded-For") // TODO: Less stupid solution
+        let headers = request.headers();
+
+        // We try to find the IP, we are probably behind a reverse proxy, so try common ones.
+        // It's ok if this takes a little time (compiled Rust wont), since the real fun begins
+        // later
+        let mut client_ip = None;
+        for header_name in vec![
+            "CF-Connecting-IP",
+            "X-Forwarded-For",
+            "X-Real-IP",
+            "Client-IP",
+            "X-Originating-IP",
+            "Forwarded",
+        ] {
+            if let Some(value) = headers.get(header_name) {
+                client_ip = Some(value);
+                break;
+            }
+        }
+
+        let client_ip = client_ip
             .map(|ip| ip.to_str().unwrap_or("unknown"))
             .unwrap_or("unknown");
 
-        tracing::info!("Hostile IP '{}' connected", client_ip,);
+        tracing::info!(
+            "Hostile IP '{}' connected to URI '{}'",
+            client_ip,
+            request.uri()
+        );
     }
 }
 
