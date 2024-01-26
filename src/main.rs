@@ -10,7 +10,7 @@ use std::{fs, path::PathBuf, process::exit};
 use tokio::net::TcpListener;
 use tracing_subscriber::prelude::*;
 
-use crate::generators::{markov::MarkovChainGenerator, GeneratorType};
+use crate::{config::GeneratorType, generators::markov::MarkovChainGenerator};
 
 /// Container for generators, to avoid trait objects.
 #[derive(Clone)]

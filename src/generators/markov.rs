@@ -3,7 +3,7 @@ use std::{fs, process::exit};
 use markov::Chain;
 use rand::{thread_rng, Rng};
 
-use crate::{config::GeneratorConfig, generators::GeneratorType};
+use crate::config::{GeneratorConfig, GeneratorType};
 
 use super::{web_stream_from_iterator, Generator};
 
@@ -32,7 +32,7 @@ impl Generator for MarkovChainGenerator {
     fn from_config(config: GeneratorConfig) -> Self {
         match config.generator_type {
             GeneratorType::MarkovChain(pb) => {
-                let content = fs::read_to_string(&pb).unwrap_or_else(|e| {
+                let content = fs::read_to_string(pb).unwrap_or_else(|e| {
                     println!(
                         "Could not create Markov chain generator due to error:\n\t{}",
                         e

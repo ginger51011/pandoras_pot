@@ -4,8 +4,6 @@ use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 
-use crate::generators::GeneratorType;
-
 /// Configuration for `pandoras_pot`.
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub(crate) struct Config {
@@ -90,7 +88,17 @@ pub(crate) struct GeneratorConfig {
 
     /// The type of generator to be used
     #[serde(default = "default_generator_type")]
+    #[serde(rename = "type")]
     pub generator_type: GeneratorType,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "name", content = "data")]
+#[serde(rename_all = "snake_case")]
+pub(crate) enum GeneratorType {
+    Random,
+    /// Markov chain that also contains a path to the text to be used for generation
+    MarkovChain(PathBuf),
 }
 
 impl Default for GeneratorConfig {
@@ -176,5 +184,39 @@ mod test {
     #[test]
     fn deserialize_empty_config() {
         toml::from_str::<Config>("").unwrap();
+    }
+
+    #[test]
+    fn deserialize_markov_chain_generator_config() {
+        let toml_str = r#"
+            [generator]
+            type = { name = "markov_chain", data = "/some/random/path" }
+        "#;
+        toml::from_str::<Config>(toml_str).unwrap();
+    }
+
+    #[test]
+    fn deserialize_random_generator_config() {
+        let toml_str = r#"
+            [generator]
+            type = { name = "random" }
+        "#;
+        toml::from_str::<Config>(toml_str).unwrap();
+    }
+
+    #[test]
+    fn deserialize_config_1() {
+        let toml_str = r#"
+            [http]
+            port = "7796"
+            routes = ["/wp-login.php"]
+            catch_all = false
+
+            [generator]
+            min_chunk_size = 400
+            max_chunk_size = 500
+            type = { name = "markov_chain", data = "/home/emil/kladd/markovseed.txt" }
+        "#;
+        toml::from_str::<Config>(toml_str).unwrap();
     }
 }

@@ -3,11 +3,8 @@
 pub(crate) mod markov;
 pub(crate) mod random;
 
-use std::path::PathBuf;
-
 use crate::config::GeneratorConfig;
 use futures::stream;
-use serde::{Deserialize, Serialize};
 
 /// Creates a "plausible" web stream from an iterator
 fn web_stream_from_iterator<T: Iterator<Item = String>>(
@@ -18,14 +15,6 @@ fn web_stream_from_iterator<T: Iterator<Item = String>>(
     // Chain them, so we always start with some valid initial tags
     let iter = initial_tags.into_iter().chain(gen);
     stream::iter(iter)
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(tag = "type", content = "data")]
-pub(crate) enum GeneratorType {
-    Random,
-    /// Markov chain that also contains a path to the text to be used for generation
-    MarkovChain(PathBuf),
 }
 
 /// Trait that describes a generator that can be converted to a stream,
