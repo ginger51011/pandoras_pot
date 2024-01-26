@@ -4,7 +4,7 @@
 </div>
 <br />
 
-[![Crates.io (pandoras_pot)](https://img.shields.io/crates/v/pandoras_pot)](https://crates.io/crates/cvars)
+[![Crates.io (pandoras_pot)](https://img.shields.io/crates/v/pandoras_pot)](https://crates.io/crates/pandoras_pot)
 
 ## Summary
 Inspired by [HellPot](https://github.com/yunginnanet/HellPot), `pandoras_pot`
