@@ -4,6 +4,8 @@ use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 
+use crate::generators::GeneratorType;
+
 /// Configuration for `pandoras_pot`.
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub(crate) struct Config {
@@ -85,6 +87,10 @@ pub(crate) struct GeneratorConfig {
     /// The maximum possible length of a generated string segment
     #[serde(default = "default_max_chunk_size")]
     pub max_chunk_size: usize,
+
+    /// The type of generator to be used
+    #[serde(default = "default_generator_type")]
+    pub generator_type: GeneratorType,
 }
 
 impl Default for GeneratorConfig {
@@ -92,6 +98,7 @@ impl Default for GeneratorConfig {
         Self {
             min_chunk_size: default_min_chunk_size(),
             max_chunk_size: default_max_chunk_size(),
+            generator_type: default_generator_type(),
         }
     }
 }
@@ -102,6 +109,10 @@ fn default_min_chunk_size() -> usize {
 
 fn default_max_chunk_size() -> usize {
     8000
+}
+
+fn default_generator_type() -> GeneratorType {
+    GeneratorType::Random
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
