@@ -74,26 +74,21 @@ async fn main() {
         .with(pretty)
         .with(ugly);
 
-    let json_log = config.logging.output_path.map(|output_path| {
-        match fs::OpenOptions::new()
-            .write(true)
-            .append(true)
-            .create(true)
-            .open(&output_path)
-        {
-            Ok(file) => {
-                let json_log = tracing_subscriber::fmt::layer().json().with_writer(file);
-                json_log
-            }
-            Err(e) => {
-                println!(
-                    "failed to open log path '{}' due to error:\n\t{}",
-                    output_path, e
-                );
-                exit(3);
-            }
+    let json_log = match fs::OpenOptions::new()
+        .write(true)
+        .append(true)
+        .create(true)
+        .open(&config.logging.output_path)
+    {
+        Ok(file) => tracing_subscriber::fmt::layer().json().with_writer(file),
+        Err(e) => {
+            println!(
+                "failed to open log path '{}' due to error:\n\t{}",
+                config.logging.output_path, e
+            );
+            exit(3);
         }
-    });
+    };
 
     // Set file logging (or not, if we had no output path)
     let subscriber = subscriber.with(json_log);

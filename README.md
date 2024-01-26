@@ -121,8 +121,7 @@ min_chunk_size = 1024
 max_chunk_size = 8000
 
 [logging]
-# Output file for logs. Will not write to logs if
-# not present.
+# Output file for logs.
 output_path = "pandoras.log"
 
 # If pretty logs should be written to standard output.

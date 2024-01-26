@@ -106,10 +106,9 @@ fn default_max_chunk_size() -> usize {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct LoggingConfig {
-    /// Output file for logs. Will not write to logs if
-    /// disabled.
+    /// Output file for logs.
     #[serde(default = "default_output_path")]
-    pub output_path: Option<String>,
+    pub output_path: String,
 
     /// If pretty logs should be written to standard output.
     #[serde(default = "default_print_pretty_logs")]
@@ -131,8 +130,8 @@ impl Default for LoggingConfig {
     }
 }
 
-fn default_output_path() -> Option<String> {
-    Some("pandoras.log".to_string())
+fn default_output_path() -> String {
+    "pandoras.log".to_string()
 }
 
 fn default_print_pretty_logs() -> bool {
