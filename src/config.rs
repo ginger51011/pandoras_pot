@@ -85,6 +85,20 @@ pub(crate) struct GeneratorConfig {
     /// The maximum possible length of a generated string segment
     #[serde(default = "default_max_chunk_size")]
     pub max_chunk_size: usize,
+
+    /// The type of generator to be used
+    #[serde(default = "default_generator_type")]
+    #[serde(rename = "type")]
+    pub generator_type: GeneratorType,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "name", content = "data")]
+#[serde(rename_all = "snake_case")]
+pub(crate) enum GeneratorType {
+    Random,
+    /// Markov chain that also contains a path to the text to be used for generation
+    MarkovChain(PathBuf),
 }
 
 impl Default for GeneratorConfig {
@@ -92,6 +106,7 @@ impl Default for GeneratorConfig {
         Self {
             min_chunk_size: default_min_chunk_size(),
             max_chunk_size: default_max_chunk_size(),
+            generator_type: default_generator_type(),
         }
     }
 }
@@ -102,6 +117,10 @@ fn default_min_chunk_size() -> usize {
 
 fn default_max_chunk_size() -> usize {
     8000
+}
+
+fn default_generator_type() -> GeneratorType {
+    GeneratorType::Random
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -165,5 +184,39 @@ mod test {
     #[test]
     fn deserialize_empty_config() {
         toml::from_str::<Config>("").unwrap();
+    }
+
+    #[test]
+    fn deserialize_markov_chain_generator_config() {
+        let toml_str = r#"
+            [generator]
+            type = { name = "markov_chain", data = "/some/random/path" }
+        "#;
+        toml::from_str::<Config>(toml_str).unwrap();
+    }
+
+    #[test]
+    fn deserialize_random_generator_config() {
+        let toml_str = r#"
+            [generator]
+            type = { name = "random" }
+        "#;
+        toml::from_str::<Config>(toml_str).unwrap();
+    }
+
+    #[test]
+    fn deserialize_config_1() {
+        let toml_str = r#"
+            [http]
+            port = "7796"
+            routes = ["/wp-login.php"]
+            catch_all = false
+
+            [generator]
+            min_chunk_size = 400
+            max_chunk_size = 500
+            type = { name = "markov_chain", data = "/home/emil/kladd/markovseed.txt" }
+        "#;
+        toml::from_str::<Config>(toml_str).unwrap();
     }
 }

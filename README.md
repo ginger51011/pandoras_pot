@@ -19,6 +19,10 @@ To ensure that bots don't detect `pandoras_pot`, it generates random data that k
 of looks like a website (to a bot), really *really* fast. Like crazy fast. One could even
 say blazingly fast. *Hopefully*.
 
+`pandoras_pot` supports multiple modes of generation, depending on its
+configuration. It can for example generate random strings as data, or "actual"
+sentances using Markov chains. Neato!
+
 ## Setting it up
 
 The most likely use-case is to use another server as a reverse proxy, and then
@@ -91,7 +95,7 @@ docker build -t pandoras_pot . # You can add --build-arg CONFIG=<...> here
 docker run --name=pandoras_pot --restart=always -p 6669:8080 -d pandoras_pot
 ```
 
-## Configuration
+## Configuration 
 
 `pandoras_pot` uses toml as a configuration format. If you are not using docker,
 you can either pass a config like an argument like so:
@@ -119,6 +123,12 @@ catch_all = true
 min_chunk_size = 1024
 # The maximum possible length of a generated string segment
 max_chunk_size = 8000
+# The type of generator to be used
+type = { name = "random" }
+
+# For generator.type it is also possible to set a markov chain generator, using
+# a text file as a source of data. Then you can use this (but uncommented, duh):
+# type = { name = "markov_chain", data = "<path to some text file>" }
 
 [logging]
 # Output file for logs.
