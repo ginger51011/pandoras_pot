@@ -60,18 +60,11 @@ impl Iterator for MarkovChainGenerator {
 
     fn next(&mut self) -> Option<Self::Item> {
         let mut rng = thread_rng();
-        let size = rng.gen_range(self.chunk_size_range.to_owned());
-        let mut current_chunk_size: usize = 0;
-        let response = self
-            .chain
-            .str_iter() // Not `.str_iter_for()`, it goes by token
-            .take_while(move |s| {
-                // String::len() is the amount of bytes
-                current_chunk_size += s.len();
-                current_chunk_size < size
-            })
-            .collect::<Vec<String>>()
-            .join(" ");
+        let desired_size = rng.gen_range(self.chunk_size_range.to_owned());
+        let mut response = String::with_capacity(desired_size);
+        while desired_size > response.len() {
+            response = self.chain.generate_str(); // Not `.str_iter_for()`, it goes by token
+        }
         Some(format!("<p>{}</p>", response))
     }
 }
