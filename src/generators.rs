@@ -1,8 +1,10 @@
 //! This module contains structures to create a generator used for data creation.
 use futures::stream;
 
-use rand::distributions::{Alphanumeric, DistString};
-use rand::{thread_rng, Rng};
+use rand::{
+    distributions::{Alphanumeric, DistString},
+    thread_rng, Rng,
+};
 
 use crate::config::GeneratorConfig;
 
