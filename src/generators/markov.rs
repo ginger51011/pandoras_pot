@@ -16,6 +16,18 @@ pub(crate) struct MarkovChainGenerator {
     chunk_size_range: std::ops::Range<usize>,
 }
 
+impl Clone for MarkovChainGenerator {
+    fn clone(&self) -> Self {
+        // Create a new chain, since it doesn't implement clone by itself...
+        let mut new_chain = Chain::new();
+        new_chain.feed(self.chain.generate());
+        Self {
+            chain: new_chain,
+            chunk_size_range: self.chunk_size_range.clone(),
+        }
+    }
+}
+
 impl Generator for MarkovChainGenerator {
     fn from_config(config: GeneratorConfig) -> Self {
         match config.generator_type {
