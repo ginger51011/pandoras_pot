@@ -1,6 +1,7 @@
 #![forbid(unsafe_code)]
 mod config;
 mod generators;
+mod handlers;
 
 use axum::{http::HeaderMap, response::IntoResponse, routing::*, Router};
 use axum_streams::StreamBodyAs;
@@ -133,7 +134,7 @@ async fn main() {
 
     // Add tracing to as a layer to our app
     let trace_layer = tower_http::trace::TraceLayer::new_for_http()
-        .on_request(tower_http::trace::DefaultOnRequest::new().level(tracing::Level::INFO))
+        .on_request(handlers::RequestHandler::new())
         .on_response(tower_http::trace::DefaultOnResponse::new().level(tracing::Level::DEBUG))
         .on_eos(tower_http::trace::DefaultOnEos::new().level(tracing::Level::DEBUG))
         .on_failure(tower_http::trace::DefaultOnFailure::new().level(tracing::Level::DEBUG));
