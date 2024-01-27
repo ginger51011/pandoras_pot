@@ -116,6 +116,8 @@ port = "8080"
 routes = ["/wp-login.php", "/.env"]
 # If all routes are to be served.
 catch_all = true
+# How many connections that can be made over `http.rate_limit_period` seconds. Will
+# not set any limit if set to 0.
 rate_limit = 0
 # Amount of seconds that `http.rate_limit` checks on. Does nothing if rate limit is set
 # to 0.

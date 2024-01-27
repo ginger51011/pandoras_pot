@@ -55,14 +55,14 @@ pub(crate) struct HttpConfig {
     /// How many connections that can be made over `http.rate_limit_period` seconds. Will
     /// not set any limit if set to 0.
     #[serde(default = "default_http_rate_limit")]
-    pub rate_limit: usize,
+    pub rate_limit: u64,
     /// Amount of seconds that `http.rate_limit` checks on. Does nothing if rate limit is set
     /// to 0.
     #[serde(default = "default_http_rate_limit_period")]
-    pub rate_limit_period: usize,
+    pub rate_limit_period: u64,
     /// How many concurrent connections that can exist. Will not set any limit if set to 0.
     #[serde(default = "default_http_max_connections")]
-    pub max_connections: usize,
+    pub max_connections: u64,
 }
 
 impl Default for HttpConfig {
@@ -92,16 +92,16 @@ fn default_http_catch_all() -> bool {
     true
 }
 
-fn default_http_rate_limit() -> usize {
+fn default_http_rate_limit() -> u64 {
     0
 }
 
-fn default_http_rate_limit_period() -> usize {
+fn default_http_rate_limit_period() -> u64 {
     // 5 minutes
     5 * 60
 }
 
-fn default_http_max_connections() -> usize {
+fn default_http_max_connections() -> u64 {
     0
 }
 
