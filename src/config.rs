@@ -240,7 +240,51 @@ mod test {
             [generator]
             min_chunk_size = 400
             max_chunk_size = 500
-            type = { name = "markov_chain", data = "/home/emil/kladd/markovseed.txt" }
+            type = { name = "markov_chain", data = "/home/whatever/kladd/markovseed.txt" }
+        "#;
+        toml::from_str::<Config>(toml_str).unwrap();
+    }
+
+    #[test]
+    fn deserialize_config_2() {
+        let toml_str = r#"
+            [http]
+            # Make sure this matches your Dockerfile's "EXPOSE" if using Docker
+            port = "8080"
+            # Routes to send misery to. Is overridden by `http.catch_all`
+            routes = ["/wp-login.php", "/.env"]
+            # If all routes are to be served.
+            catch_all = true
+            # How many connections that can be made over `http.rate_limit_period` seconds. Will
+            # not set any limit if set to 0.
+            rate_limit = 0
+            # Amount of seconds that `http.rate_limit` checks on. Does nothing if rate limit is set
+            # to 0.
+            rate_limit_period = 300 # 5 minutes
+
+            [generator]
+            # Changing these will drastically impact performance. Play around a bit!
+            # The minimum possible length of a generated string segment
+            min_chunk_size = 1024
+            # The maximum possible length of a generated string segment
+            max_chunk_size = 8000
+            # The type of generator to be used
+            type = { name = "random" }
+
+            # For generator.type it is also possible to set a markov chain generator, using
+            # a text file as a source of data. Then you can use this (but uncommented, duh):
+            # type = { name = "markov_chain", data = "/rootvalue.txt" }
+
+            [logging]
+            # Output file for logs.
+            output_path = "pandoras.log"
+
+            # If pretty logs should be written to standard output.
+            print_pretty_logs = true
+
+            # If no logs at all should be printed to stdout. Overrides other stdout logging
+            # settings.
+            no_stdout = false
         "#;
         toml::from_str::<Config>(toml_str).unwrap();
     }
