@@ -15,7 +15,11 @@ use config::Config;
 use generators::{random::RandomGenerator, Generator};
 use std::{fs, path::PathBuf, process::exit, time::Duration};
 use tokio::net::TcpListener;
-use tower::{buffer::BufferLayer, limit::RateLimitLayer, ServiceBuilder};
+use tower::{
+    buffer::BufferLayer,
+    limit::{ConcurrencyLimitLayer, RateLimitLayer},
+    ServiceBuilder,
+};
 use tracing_subscriber::prelude::*;
 
 use crate::{config::GeneratorType, generators::markov::MarkovChainGenerator};
@@ -150,8 +154,8 @@ async fn main() {
 
     // Set rate limiting
 
-    if config.http.rate_limit > 0 {
-        // u64, so not below zero
+    // u64, so not below zero
+    if config.http.rate_limit != 0 {
         if config.http.rate_limit_period == 0 {
             println!("You cannot activate rate limiting and then set the period to 0!");
             exit(39);
@@ -172,6 +176,23 @@ async fn main() {
                 )),
         );
     };
+
+    // Add max concurrency (max connections)
+
+    // usize, so not below zero
+    if config.http.max_connections != 0 {
+        app = app.layer(
+            ServiceBuilder::new()
+                .layer(HandleErrorLayer::new(|err: BoxError| async move {
+                    (
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        format!("Unhandled error: {}", err),
+                    )
+                }))
+                .layer(BufferLayer::new(1024))
+                .layer(ConcurrencyLimitLayer::new(config.http.max_connections)),
+        )
+    }
 
     let listener = TcpListener::bind(format!("0.0.0.0:{}", config.http.port))
         .await
