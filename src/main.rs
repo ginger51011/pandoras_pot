@@ -15,11 +15,7 @@ use config::Config;
 use generators::{random::RandomGenerator, Generator};
 use std::{fs, path::PathBuf, process::exit, time::Duration};
 use tokio::net::TcpListener;
-use tower::{
-    buffer::BufferLayer,
-    limit::{ConcurrencyLimitLayer, RateLimitLayer},
-    ServiceBuilder,
-};
+use tower::{buffer::BufferLayer, limit::RateLimitLayer, ServiceBuilder};
 use tracing_subscriber::prelude::*;
 
 use crate::{config::GeneratorType, generators::markov::MarkovChainGenerator};
@@ -176,23 +172,6 @@ async fn main() {
                 )),
         );
     };
-
-    // Add max concurrency (max connections)
-
-    // usize, so not below zero
-    if config.http.max_connections != 0 {
-        app = app.layer(
-            ServiceBuilder::new()
-                .layer(HandleErrorLayer::new(|err: BoxError| async move {
-                    (
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                        format!("Unhandled error: {}", err),
-                    )
-                }))
-                .layer(BufferLayer::new(1024))
-                .layer(ConcurrencyLimitLayer::new(config.http.max_connections)),
-        )
-    }
 
     let listener = TcpListener::bind(format!("0.0.0.0:{}", config.http.port))
         .await

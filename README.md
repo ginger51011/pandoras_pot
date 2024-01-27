@@ -122,8 +122,6 @@ rate_limit = 0
 # Amount of seconds that `http.rate_limit` checks on. Does nothing if rate limit is set
 # to 0.
 rate_limit_period = 300 # 5 minutes
-# How many concurrent connections that can exist. Will not set any limit if set to 0.
-max_connections = 0
 
 [generator]
 # Changing these will drastically impact performance. Play around a bit!
