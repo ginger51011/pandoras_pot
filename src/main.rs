@@ -3,12 +3,19 @@ mod config;
 mod generators;
 mod handlers;
 
-use axum::{http::HeaderMap, response::IntoResponse, routing::*, Router};
+use axum::{
+    error_handling::HandleErrorLayer,
+    http::{HeaderMap, StatusCode},
+    response::IntoResponse,
+    routing::*,
+    BoxError, Router,
+};
 use axum_streams::StreamBodyAs;
 use config::Config;
 use generators::{random::RandomGenerator, Generator};
-use std::{fs, path::PathBuf, process::exit};
+use std::{fs, path::PathBuf, process::exit, time::Duration};
 use tokio::net::TcpListener;
+use tower::{buffer::BufferLayer, limit::RateLimitLayer, ServiceBuilder};
 use tracing_subscriber::prelude::*;
 
 use crate::{config::GeneratorType, generators::markov::MarkovChainGenerator};
@@ -140,6 +147,31 @@ async fn main() {
         .on_failure(tower_http::trace::DefaultOnFailure::new().level(tracing::Level::DEBUG));
 
     app = app.layer(trace_layer);
+
+    // Set rate limiting
+
+    // u64, so not below zero
+    if config.http.rate_limit != 0 {
+        if config.http.rate_limit_period == 0 {
+            println!("You cannot activate rate limiting and then set the period to 0!");
+            exit(39);
+        }
+        // See https://github.com/tokio-rs/axum/discussions/987#discussioncomment-2678115
+        app = app.layer(
+            ServiceBuilder::new()
+                .layer(HandleErrorLayer::new(|err: BoxError| async move {
+                    (
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        format!("Unhandled error: {}", err),
+                    )
+                }))
+                .layer(BufferLayer::new(1024))
+                .layer(RateLimitLayer::new(
+                    config.http.rate_limit,
+                    Duration::from_secs(config.http.rate_limit_period),
+                )),
+        );
+    };
 
     let listener = TcpListener::bind(format!("0.0.0.0:{}", config.http.port))
         .await
