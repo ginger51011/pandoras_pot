@@ -10,6 +10,7 @@ use axum::{
     routing::*,
     BoxError, Router,
 };
+use axum_streams::StreamBodyAs;
 use config::Config;
 use generators::{random::RandomGenerator, Generator};
 use std::{fs, path::PathBuf, process::exit, time::Duration};
@@ -18,6 +19,10 @@ use tower::{buffer::BufferLayer, limit::RateLimitLayer, ServiceBuilder};
 use tracing_subscriber::prelude::*;
 
 use crate::{config::GeneratorType, generators::markov::MarkovChainGenerator};
+
+async fn text_stream(gen: RandomGenerator) -> impl IntoResponse {
+    StreamBodyAs::text(gen.stream())
+}
 
 #[tokio::main]
 async fn main() {
@@ -98,20 +103,22 @@ async fn main() {
 
     let mut app = Router::new();
 
-    // if config.http.catch_all {
-    //     // Since we have no other routes now, all will be passed to the fallback
-    //     app = app.fallback(get(move || text_stream(gen)));
-    //     tracing::info!("Catch-All enabled");
-    // } else if !config.http.routes.is_empty() {
-    //     for route in &config.http.routes {
-    //         let gen = gen.clone();
-    //         app = app.route(route, get(move || text_stream(gen)));
-    //     }
-    //     tracing::info!("Listening on routes: {}", config.http.routes.join(", "));
-    // } else {
-    //     tracing::info!("http.catch_all was disabled, but no routes was provided!");
-    //     exit(1);
-    // }
+    if config.http.catch_all {
+        // Since we have no other routes now, all will be passed to the fallback
+        let gen = RandomGenerator::default();
+        app = app.fallback(get(move || gen.receiver()));
+        tracing::info!("Catch-All enabled");
+    } else if !config.http.routes.is_empty() {
+        todo!("Not implemented")
+        // for route in &config.http.routes {
+        //     let gen = gen.clone();
+        //     app = app.route(route, get(move || text_stream(gen)));
+        // }
+        // tracing::info!("Listening on routes: {}", config.http.routes.join(", "));
+    } else {
+        tracing::info!("http.catch_all was disabled, but no routes was provided!");
+        exit(1);
+    }
 
     // Add tracing to as a layer to our app
     let trace_layer = tower_http::trace::TraceLayer::new_for_http()

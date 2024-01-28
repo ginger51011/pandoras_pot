@@ -1,19 +1,15 @@
 use std::{fs, process::exit};
 
 use markov::Chain;
-use rand::{thread_rng, Rng};
 
 use crate::config::{GeneratorConfig, GeneratorType};
 
-use super::Generator;
+use super::{Generator, GENERATOR_BUFFER_SIZE};
 
 pub(crate) struct MarkovChainGenerator {
     /// Chain used to generate responses. Used to hold ownership.,
     /// use `chain_iter`.
     chain: Chain<String>,
-    // The range of length for each generated string segment (not
-    // counting HTML) in bytes.
-    chunk_size_range: std::ops::Range<usize>,
 }
 
 impl Clone for MarkovChainGenerator {
@@ -21,10 +17,7 @@ impl Clone for MarkovChainGenerator {
         // Create a new chain, since it doesn't implement clone by itself...
         let mut new_chain = Chain::new();
         new_chain.feed(self.chain.generate());
-        Self {
-            chain: new_chain,
-            chunk_size_range: self.chunk_size_range.clone(),
-        }
+        Self { chain: new_chain }
     }
 }
 
@@ -41,10 +34,7 @@ impl Generator for MarkovChainGenerator {
                 });
                 let mut chain: Chain<String> = Chain::new();
                 chain.feed_str(&content);
-                Self {
-                    chain,
-                    chunk_size_range: config.min_chunk_size..config.max_chunk_size,
-                }
+                Self { chain }
             }
             _ => panic!("wrong generator type in config"),
         }
@@ -55,12 +45,11 @@ impl Iterator for MarkovChainGenerator {
     type Item = String;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let mut rng = thread_rng();
-        let desired_size = rng.gen_range(self.chunk_size_range.to_owned());
-        let mut response = String::with_capacity(desired_size);
-        while desired_size > response.len() {
+        // TODO: A byte is not a char, but this is good enough for now
+        let mut response = String::with_capacity(GENERATOR_BUFFER_SIZE);
+        while GENERATOR_BUFFER_SIZE > response.len() {
             response = self.chain.generate_str(); // Not `.str_iter_for()`, it goes by token
         }
-        Some(format!("<p>{}</p>", response))
+        Some(response)
     }
 }

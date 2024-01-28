@@ -3,12 +3,11 @@
 pub(crate) mod markov;
 pub(crate) mod random;
 
-use std::convert::Infallible;
-
 use crate::config::GeneratorConfig;
-use axum::http::Response;
+use futures::Stream;
 
 const GENERATOR_BUFFER_SIZE: usize = 1024 * 16;
+const GENERATOR_CHANNEL_BUFFER: usize = 2;
 
 /// Trait that describes a generator that can be converted to a stream,
 /// outputting (probably infinite) amounts of very useful strings.
@@ -28,9 +27,9 @@ where
         buff.copy_from_slice(&bytes[..GENERATOR_BUFFER_SIZE])
     }
 
-    /// Returns an infinite stream response using this generator.
-    fn response(&self) -> Result<Response<tokio::sync::mpsc::Receiver<[u8; 16384]>>, Infallible> {
-        let (writer, body) = tokio::sync::mpsc::channel(1);
+    /// Returns an infinite stream using this generator.
+    fn stream(&self) -> impl Stream<Item = [u8; GENERATOR_BUFFER_SIZE]> {
+        let (tx, rx) = tokio::sync::mpsc::channel(GENERATOR_CHANNEL_BUFFER);
 
         // This is kind of expensive, but not really. First response time is not an issue.
         let mut gen = self.clone();
@@ -39,9 +38,10 @@ where
             let mut bytes_written = 0_usize;
             loop {
                 gen.read(&mut buff);
-                match writer.send(buff).await {
+                match tx.send(buff).await {
                     Ok(_) => bytes_written += buff.len(),
                     Err(_) => {
+                        // TODO: Add metadata
                         tracing::info!(
                             "Stream broken, wrote {} MB, or {} GB",
                             (bytes_written as f64) * 1e-6,
@@ -53,9 +53,6 @@ where
             }
         });
 
-        Ok(Response::builder()
-            .header("Content-Type", "text/html")
-            .body(body)
-            .unwrap())
+        tokio_stream::wrappers::ReceiverStream::new(rx)
     }
 }
