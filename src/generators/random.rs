@@ -1,12 +1,10 @@
-use futures::stream;
-
 use crate::config::GeneratorConfig;
 use rand::{
     distributions::{Alphanumeric, DistString},
     thread_rng, Rng,
 };
 
-use super::{web_stream_from_iterator, Generator};
+use super::Generator;
 
 #[derive(Clone, Debug)]
 pub(crate) struct RandomGenerator {
@@ -21,10 +19,6 @@ impl Generator for RandomGenerator {
             chunk_size_range: config.min_chunk_size..config.max_chunk_size,
         }
     }
-
-    fn to_stream(self) -> impl stream::Stream<Item = String> {
-        web_stream_from_iterator(self)
-    }
 }
 
 impl Default for RandomGenerator {
@@ -37,6 +31,8 @@ impl Iterator for RandomGenerator {
     type Item = String;
 
     fn next(&mut self) -> Option<Self::Item> {
+        // TODO: Fix this, good if it is u8 to start with, and then
+        // perhaps not to include <p><p> stuff.
         let mut rng = thread_rng();
         let size = rng.gen_range(self.chunk_size_range.to_owned());
         let s = Alphanumeric.sample_string(&mut rng, size);

@@ -5,7 +5,7 @@ use rand::{thread_rng, Rng};
 
 use crate::config::{GeneratorConfig, GeneratorType};
 
-use super::{web_stream_from_iterator, Generator};
+use super::Generator;
 
 pub(crate) struct MarkovChainGenerator {
     /// Chain used to generate responses. Used to hold ownership.,
@@ -48,10 +48,6 @@ impl Generator for MarkovChainGenerator {
             }
             _ => panic!("wrong generator type in config"),
         }
-    }
-
-    fn to_stream(self) -> impl futures::prelude::stream::Stream<Item = String> + Send {
-        web_stream_from_iterator(self)
     }
 }
 
