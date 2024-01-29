@@ -13,8 +13,6 @@ use self::{markov::MarkovChainGenerator, random::RandomGenerator};
 ///.Max amounts of generators. Currently hardcoded to avoid abuse.
 static GENERATOR_PERMITS: Semaphore = Semaphore::const_new(100);
 
-const GENERATOR_CHANNEL_BUFFER: usize = 2;
-
 /// Size of wrapping a string in a "<p>\n{<yourstring>}\n</p>\n"
 const P_TAG_SIZE: usize = 0xA;
 
@@ -36,13 +34,17 @@ where
 
     /// Returns an infinite stream using this generator.
     fn into_receiver(mut self) -> Receiver<String> {
-        let (tx, rx) = tokio::sync::mpsc::channel(GENERATOR_CHANNEL_BUFFER);
+        // To provide accurate stats, the buffer must be 1
+        let (tx, rx) = tokio::sync::mpsc::channel(1);
 
         tokio::spawn(async move {
             let _permit = GENERATOR_PERMITS.acquire().await.unwrap();
             let mut bytes_written = 0_usize;
             loop {
                 let s = self.next().expect("next returned None");
+
+                // The size may be dynamic if the generator does not have a strict
+                // chunk size
                 let s_size = s.as_bytes().len();
                 match tx.send(s).await {
                     Ok(_) => bytes_written += s_size,
