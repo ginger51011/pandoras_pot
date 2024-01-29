@@ -6,6 +6,9 @@ use crate::config::{GeneratorConfig, GeneratorType};
 
 use super::{Generator, P_TAG_SIZE};
 
+/// A generator using Markov chains to generate text. Due to the nature of
+/// markov chains, each new generated piece of string may not exactly be
+/// `chunk_size`, and might be a bit larger.
 pub(crate) struct MarkovChainGenerator {
     chunk_size: usize,
     /// Chain used to generate responses. Used to hold ownership.,
@@ -52,10 +55,15 @@ impl Iterator for MarkovChainGenerator {
     type Item = String;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let s: String = self
-            .chain
-            .str_iter_for(self.chunk_size - P_TAG_SIZE)
-            .collect();
-        Some(format!("<p>\n{}\n</p>\n", s))
+        let desired_size = self.chunk_size - P_TAG_SIZE;
+
+        // Add some more, we are going to get a bit too much I think.
+        let mut result = String::with_capacity(desired_size + 1024);
+        while result.as_bytes().len() < desired_size {
+            // Must do it this way to get a new generated string
+            // each time
+            result.push_str(&self.chain.generate_str());
+        }
+        Some(format!("<p>\n{}\n</p>\n", result))
     }
 }

@@ -1,7 +1,8 @@
 use crate::config::GeneratorConfig;
 use rand::{
     distributions::{Alphanumeric, DistString},
-    thread_rng,
+    rngs::SmallRng,
+    SeedableRng,
 };
 
 use super::{Generator, P_TAG_SIZE};
@@ -31,8 +32,9 @@ impl Iterator for RandomGenerator {
     type Item = String;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let mut rng = thread_rng();
-        let s = Alphanumeric.sample_string(&mut rng, self.chunk_size - P_TAG_SIZE);
+        // No need to be secure, we are smacking bots
+        let mut smol_rng = SmallRng::from_entropy();
+        let s = Alphanumeric.sample_string(&mut smol_rng, self.chunk_size - P_TAG_SIZE);
         Some(format!("<p>\n{}\n</p>\n", s))
     }
 }
