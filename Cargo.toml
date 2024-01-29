@@ -1,6 +1,6 @@
 [package]
 name = "pandoras_pot"
-version = "0.3.0"
+version = "0.4.0"
 authors = ["Emil Jonathan Eriksso <github.com/ginger51011>"]
 edition = "2021"
 description = "Honeypot designed to send huge amounts of data to rude web scrapers"
