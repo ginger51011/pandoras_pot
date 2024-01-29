@@ -12,7 +12,7 @@ use axum::{
 };
 use axum_streams::StreamBodyAs;
 use config::Config;
-use generators::{random::RandomGenerator, Generator};
+use generators::{random::RandomGenerator, Generator, GeneratorContainer};
 use std::{fs, path::PathBuf, process::exit, time::Duration};
 use tokio::net::TcpListener;
 use tower::{buffer::BufferLayer, limit::RateLimitLayer, ServiceBuilder};
@@ -20,8 +20,15 @@ use tracing_subscriber::prelude::*;
 
 use crate::{config::GeneratorType, generators::markov::MarkovChainGenerator};
 
-async fn text_stream(gen: RandomGenerator) -> impl IntoResponse {
-    StreamBodyAs::text(gen.stream())
+async fn text_stream(gen: GeneratorContainer) -> impl IntoResponse {
+    // Set some headers to trick le bots
+    let mut headers = HeaderMap::new();
+    headers.insert("Content-Type", "text/html; charset=utf-8".parse().unwrap());
+
+    match gen {
+        GeneratorContainer::Random(g) => StreamBodyAs::text(g.into_stream()).headers(headers),
+        GeneratorContainer::MarkovChain(g) => StreamBodyAs::text(g.into_stream()).headers(headers),
+    }
 }
 
 #[tokio::main]
@@ -94,27 +101,25 @@ async fn main() {
     tracing::subscriber::set_global_default(subscriber).expect("unable to set global subscriber");
 
     // Create gen depending on config
-    // let gen = match config.generator.generator_type {
-    //     GeneratorType::Random => GeneratorContainer::Random(RandomGenerator::default()),
-    //     GeneratorType::MarkovChain(_) => {
-    //         GeneratorContainer::MarkovChain(MarkovChainGenerator::from_config(config.generator))
-    //     }
-    // };
+    let gen = match config.generator.generator_type {
+        GeneratorType::Random => GeneratorContainer::Random(RandomGenerator::default()),
+        GeneratorType::MarkovChain(_) => {
+            GeneratorContainer::MarkovChain(MarkovChainGenerator::from_config(config.generator))
+        }
+    };
 
     let mut app = Router::new();
 
     if config.http.catch_all {
         // Since we have no other routes now, all will be passed to the fallback
-        let gen = RandomGenerator::default();
-        app = app.fallback(get(move || gen.receiver()));
+        app = app.fallback(get(move || text_stream(gen)));
         tracing::info!("Catch-All enabled");
     } else if !config.http.routes.is_empty() {
-        todo!("Not implemented")
-        // for route in &config.http.routes {
-        //     let gen = gen.clone();
-        //     app = app.route(route, get(move || text_stream(gen)));
-        // }
-        // tracing::info!("Listening on routes: {}", config.http.routes.join(", "));
+        for route in &config.http.routes {
+            let gen = gen.clone();
+            app = app.route(route, get(move || text_stream(gen)));
+        }
+        tracing::info!("Listening on routes: {}", config.http.routes.join(", "));
     } else {
         tracing::info!("http.catch_all was disabled, but no routes was provided!");
         exit(1);

@@ -4,9 +4,10 @@ use markov::Chain;
 
 use crate::config::{GeneratorConfig, GeneratorType};
 
-use super::{Generator, GENERATOR_BUFFER_SIZE};
+use super::{Generator, P_TAG_SIZE};
 
 pub(crate) struct MarkovChainGenerator {
+    chunk_size: usize,
     /// Chain used to generate responses. Used to hold ownership.,
     /// use `chain_iter`.
     chain: Chain<String>,
@@ -17,7 +18,10 @@ impl Clone for MarkovChainGenerator {
         // Create a new chain, since it doesn't implement clone by itself...
         let mut new_chain = Chain::new();
         new_chain.feed(self.chain.generate());
-        Self { chain: new_chain }
+        Self {
+            chunk_size: self.chunk_size,
+            chain: new_chain,
+        }
     }
 }
 
@@ -34,7 +38,10 @@ impl Generator for MarkovChainGenerator {
                 });
                 let mut chain: Chain<String> = Chain::new();
                 chain.feed_str(&content);
-                Self { chain }
+                Self {
+                    chunk_size: config.chunk_size,
+                    chain,
+                }
             }
             _ => panic!("wrong generator type in config"),
         }
@@ -45,11 +52,10 @@ impl Iterator for MarkovChainGenerator {
     type Item = String;
 
     fn next(&mut self) -> Option<Self::Item> {
-        // TODO: A byte is not a char, but this is good enough for now
-        let mut response = String::with_capacity(GENERATOR_BUFFER_SIZE);
-        while GENERATOR_BUFFER_SIZE > response.len() {
-            response = self.chain.generate_str(); // Not `.str_iter_for()`, it goes by token
-        }
-        Some(response)
+        let s: String = self
+            .chain
+            .str_iter_for(self.chunk_size - P_TAG_SIZE)
+            .collect();
+        Some(format!("<p>\n{}\n</p>\n", s))
     }
 }
