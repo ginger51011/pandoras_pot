@@ -159,6 +159,23 @@ async fn main() {
         );
     };
 
+    if config.http.health_port_enabled {
+        if config.http.port == config.http.health_port {
+            println!(
+                "Health port and normal port cannot be the same! (Both are {})",
+                config.http.port
+            );
+            exit(88);
+        }
+
+        let health_router = Router::new().fallback_service(get(|| async { "OK\n" }));
+        let health_listener = TcpListener::bind(format!("0.0.0.0:{}", config.http.health_port))
+            .await
+            .unwrap();
+        tracing::info!("Health check listening on port {}", config.http.health_port);
+        tokio::spawn(async move { axum::serve(health_listener, health_router).await.unwrap() });
+    }
+
     let listener = TcpListener::bind(format!("0.0.0.0:{}", config.http.port))
         .await
         .unwrap();

@@ -122,6 +122,14 @@ rate_limit = 0
 # Amount of seconds that `http.rate_limit` checks on. Does nothing if rate limit is set
 # to 0.
 rate_limit_period = 300 # 5 minutes
+# Enables `http.health_port` to be used for health checks (to see if
+# `pandoras_pot` is running). Useful if you want to use your chad gaming PC
+# that might not always be up and running to back up an instance running on
+# your RPi 3 web server.
+health_port_enabled = false
+# Port to be used for health checks. Should probably not be accessible from the
+# outside. Has no effect if `http.health_port_enabled` is `false`.
+health_port = "8081"
 
 [generator]
 # The size of each generated chunk in bytes. Has a big impact on performance, so

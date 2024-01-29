@@ -60,6 +60,15 @@ pub(crate) struct HttpConfig {
     /// to 0.
     #[serde(default = "default_http_rate_limit_period")]
     pub rate_limit_period: u64,
+    /// Enables `http.health_port` to be used for health checks (to see if `pandoras_pot`).
+    /// Useful if you want to use your chad gaming PC that might not always be up and running
+    /// to back up an instance running on your RPi 3 web server.
+    #[serde(default = "default_http_health_port_enabled")]
+    pub health_port_enabled: bool,
+    /// Port to be used for health checks. Should probably not be accessible from the
+    /// outside. Has no effect if `http.health_port_enabled` is `false`.
+    #[serde(default = "default_http_health_port")]
+    pub health_port: String,
 }
 
 impl Default for HttpConfig {
@@ -70,6 +79,8 @@ impl Default for HttpConfig {
             catch_all: default_http_catch_all(),
             rate_limit: default_http_rate_limit(),
             rate_limit_period: default_http_rate_limit(),
+            health_port_enabled: default_http_health_port_enabled(),
+            health_port: default_http_health_port(),
         }
     }
 }
@@ -95,6 +106,14 @@ fn default_http_rate_limit() -> u64 {
 fn default_http_rate_limit_period() -> u64 {
     // 5 minutes
     5 * 60
+}
+
+fn default_http_health_port_enabled() -> bool {
+    false
+}
+
+fn default_http_health_port() -> String {
+    "8081".to_string()
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
