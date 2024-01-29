@@ -43,7 +43,7 @@ where
             let mut bytes_written = 0_usize;
             loop {
                 let s = self.next().expect("next returned None");
-                let s_size = std::mem::size_of_val(&s);
+                let s_size = s.as_bytes().len();
                 match tx.send(s).await {
                     Ok(_) => bytes_written += s_size,
                     Err(_) => {

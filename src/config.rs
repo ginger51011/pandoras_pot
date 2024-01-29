@@ -255,11 +255,7 @@ mod test {
             rate_limit_period = 300 # 5 minutes
 
             [generator]
-            # Changing these will drastically impact performance. Play around a bit!
-            # The minimum possible length of a generated string segment
-            min_chunk_size = 1024
-            # The maximum possible length of a generated string segment
-            max_chunk_size = 8000
+            chunk_size = 1024
             # The type of generator to be used
             type = { name = "random" }
 
