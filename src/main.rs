@@ -12,7 +12,7 @@ use axum::{
 };
 use axum_streams::StreamBodyAs;
 use config::Config;
-use generators::{random::RandomGenerator, Generator};
+use generators::{random::RandomGenerator, Generator, GeneratorContainer};
 use std::{fs, path::PathBuf, process::exit, time::Duration};
 use tokio::net::TcpListener;
 use tower::{buffer::BufferLayer, limit::RateLimitLayer, ServiceBuilder};
@@ -20,28 +20,14 @@ use tracing_subscriber::prelude::*;
 
 use crate::{config::GeneratorType, generators::markov::MarkovChainGenerator};
 
-/// Container for generators, to avoid trait objects.
-#[derive(Clone)]
-enum GeneratorContainer {
-    Random(RandomGenerator),
-    MarkovChain(MarkovChainGenerator),
-}
-
-/// Uses `gen` to stream an infinite text stream.
-///
-/// Sets some headers, like `Content-Type` automatically.
 async fn text_stream(gen: GeneratorContainer) -> impl IntoResponse {
     // Set some headers to trick le bots
     let mut headers = HeaderMap::new();
     headers.insert("Content-Type", "text/html; charset=utf-8".parse().unwrap());
 
     match gen {
-        GeneratorContainer::Random(g) => StreamBodyAs::text(g.to_stream())
-            .headers(headers)
-            .into_response(),
-        GeneratorContainer::MarkovChain(g) => StreamBodyAs::text(g.to_stream())
-            .headers(headers)
-            .into_response(),
+        GeneratorContainer::Random(g) => StreamBodyAs::text(g.into_stream()).headers(headers),
+        GeneratorContainer::MarkovChain(g) => StreamBodyAs::text(g.into_stream()).headers(headers),
     }
 }
 

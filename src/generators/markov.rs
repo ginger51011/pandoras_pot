@@ -1,19 +1,16 @@
 use std::{fs, process::exit};
 
 use markov::Chain;
-use rand::{thread_rng, Rng};
 
 use crate::config::{GeneratorConfig, GeneratorType};
 
-use super::{web_stream_from_iterator, Generator};
+use super::{Generator, P_TAG_SIZE};
 
 pub(crate) struct MarkovChainGenerator {
+    chunk_size: usize,
     /// Chain used to generate responses. Used to hold ownership.,
     /// use `chain_iter`.
     chain: Chain<String>,
-    // The range of length for each generated string segment (not
-    // counting HTML) in bytes.
-    chunk_size_range: std::ops::Range<usize>,
 }
 
 impl Clone for MarkovChainGenerator {
@@ -22,8 +19,8 @@ impl Clone for MarkovChainGenerator {
         let mut new_chain = Chain::new();
         new_chain.feed(self.chain.generate());
         Self {
+            chunk_size: self.chunk_size,
             chain: new_chain,
-            chunk_size_range: self.chunk_size_range.clone(),
         }
     }
 }
@@ -42,16 +39,12 @@ impl Generator for MarkovChainGenerator {
                 let mut chain: Chain<String> = Chain::new();
                 chain.feed_str(&content);
                 Self {
+                    chunk_size: config.chunk_size,
                     chain,
-                    chunk_size_range: config.min_chunk_size..config.max_chunk_size,
                 }
             }
             _ => panic!("wrong generator type in config"),
         }
-    }
-
-    fn to_stream(self) -> impl futures::prelude::stream::Stream<Item = String> + Send {
-        web_stream_from_iterator(self)
     }
 }
 
@@ -59,12 +52,10 @@ impl Iterator for MarkovChainGenerator {
     type Item = String;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let mut rng = thread_rng();
-        let desired_size = rng.gen_range(self.chunk_size_range.to_owned());
-        let mut response = String::with_capacity(desired_size);
-        while desired_size > response.len() {
-            response = self.chain.generate_str(); // Not `.str_iter_for()`, it goes by token
-        }
-        Some(format!("<p>{}</p>", response))
+        let s: String = self
+            .chain
+            .str_iter_for(self.chunk_size - P_TAG_SIZE)
+            .collect();
+        Some(format!("<p>\n{}\n</p>\n", s))
     }
 }

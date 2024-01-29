@@ -124,11 +124,9 @@ rate_limit = 0
 rate_limit_period = 300 # 5 minutes
 
 [generator]
-# Changing these will drastically impact performance. Play around a bit!
-# The minimum possible length of a generated string segment
-min_chunk_size = 1024
-# The maximum possible length of a generated string segment
-max_chunk_size = 8000
+# The size of each generated chunk in bytes. Has a big impact on performance, so
+# play around a bit!
+chunk_size = 16384 # 1024 * 16
 # The type of generator to be used
 type = { name = "random" }
 

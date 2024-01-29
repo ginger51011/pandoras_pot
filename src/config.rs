@@ -99,13 +99,10 @@ fn default_http_rate_limit_period() -> u64 {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct GeneratorConfig {
-    /// The minimum possible length of a generated string segment
-    #[serde(default = "default_generator_min_chunk_size")]
-    pub min_chunk_size: usize,
-
-    /// The maximum possible length of a generated string segment
-    #[serde(default = "default_generator_max_chunk_size")]
-    pub max_chunk_size: usize,
+    /// The size of each generated chunk in bytes. Has a big impact on performance, so
+    /// play around a bit!
+    #[serde(default = "default_generator_chunk_size")]
+    pub chunk_size: usize,
 
     /// The type of generator to be used
     #[serde(default = "default_generator_generator_type")]
@@ -125,8 +122,7 @@ pub(crate) enum GeneratorType {
 impl Default for GeneratorConfig {
     fn default() -> Self {
         Self {
-            min_chunk_size: default_generator_min_chunk_size(),
-            max_chunk_size: default_generator_max_chunk_size(),
+            chunk_size: default_generator_chunk_size(),
             generator_type: default_generator_generator_type(),
         }
     }
@@ -134,12 +130,8 @@ impl Default for GeneratorConfig {
 
 // Note naming convention for these
 
-fn default_generator_min_chunk_size() -> usize {
-    1024
-}
-
-fn default_generator_max_chunk_size() -> usize {
-    8000
+fn default_generator_chunk_size() -> usize {
+    1024 * 16
 }
 
 fn default_generator_generator_type() -> GeneratorType {
@@ -263,11 +255,7 @@ mod test {
             rate_limit_period = 300 # 5 minutes
 
             [generator]
-            # Changing these will drastically impact performance. Play around a bit!
-            # The minimum possible length of a generated string segment
-            min_chunk_size = 1024
-            # The maximum possible length of a generated string segment
-            max_chunk_size = 8000
+            chunk_size = 1024
             # The type of generator to be used
             type = { name = "random" }
 

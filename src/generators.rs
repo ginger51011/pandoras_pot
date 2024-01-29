@@ -4,25 +4,65 @@ pub(crate) mod markov;
 pub(crate) mod random;
 
 use crate::config::GeneratorConfig;
-use futures::stream;
+use futures::Stream;
+use tokio::sync::{mpsc::Receiver, Semaphore};
 
-/// Creates a "plausible" web stream from an iterator
-fn web_stream_from_iterator<T: Iterator<Item = String>>(
-    gen: T,
-) -> stream::Iter<std::iter::Chain<std::array::IntoIter<String, 1>, T>> {
-    // Add some initial tags
-    let initial_tags = [String::from("<html>\n<body>\n")];
-    // Chain them, so we always start with some valid initial tags
-    let iter = initial_tags.into_iter().chain(gen);
-    stream::iter(iter)
+use self::{markov::MarkovChainGenerator, random::RandomGenerator};
+
+// TODO: Make configurable
+///.Max amounts of generators. Currently hardcoded to avoid abuse.
+static GENERATOR_PERMITS: Semaphore = Semaphore::const_new(100);
+
+const GENERATOR_CHANNEL_BUFFER: usize = 2;
+
+/// Size of wrapping a string in a "<p>\n{<yourstring>}\n</p>\n"
+const P_TAG_SIZE: usize = 0xA;
+
+/// Container for generators
+#[derive(Clone)]
+pub(crate) enum GeneratorContainer {
+    Random(RandomGenerator),
+    MarkovChain(MarkovChainGenerator),
 }
 
 /// Trait that describes a generator that can be converted to a stream,
 /// outputting (probably infinite) amounts of very useful strings.
-pub trait Generator {
+pub trait Generator
+where
+    Self: Sync + Iterator<Item = String> + Clone + Send + 'static,
+{
     /// Creates the generator from a config.
     fn from_config(config: GeneratorConfig) -> Self;
 
-    /// Converts the generator to a stream of text.
-    fn to_stream(self) -> impl stream::Stream<Item = String> + Send;
+    /// Returns an infinite stream using this generator.
+    fn into_receiver(mut self) -> Receiver<String> {
+        let (tx, rx) = tokio::sync::mpsc::channel(GENERATOR_CHANNEL_BUFFER);
+
+        tokio::spawn(async move {
+            let _permit = GENERATOR_PERMITS.acquire().await.unwrap();
+            let mut bytes_written = 0_usize;
+            loop {
+                let s = self.next().expect("next returned None");
+                let s_size = s.as_bytes().len();
+                match tx.send(s).await {
+                    Ok(_) => bytes_written += s_size,
+                    Err(_) => {
+                        // TODO: Add metadata
+                        tracing::info!(
+                            "Stream broken, wrote {} MB, or {} GB",
+                            (bytes_written as f64) * 1e-6,
+                            (bytes_written as f64) * 1e-9
+                        );
+                        break;
+                    }
+                }
+            }
+        });
+
+        rx
+    }
+
+    fn into_stream(self) -> impl Stream<Item = String> {
+        tokio_stream::wrappers::ReceiverStream::new(self.into_receiver())
+    }
 }
