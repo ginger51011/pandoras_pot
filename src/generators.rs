@@ -5,9 +5,13 @@ pub(crate) mod random;
 
 use crate::config::GeneratorConfig;
 use futures::Stream;
-use tokio::sync::mpsc::Receiver;
+use tokio::sync::{mpsc::Receiver, Semaphore};
 
 use self::{markov::MarkovChainGenerator, random::RandomGenerator};
+
+// TODO: Make configurable
+///.Max amounts of generators. Currently hardcoded to avoid abuse.
+static GENERATOR_PERMITS: Semaphore = Semaphore::const_new(100);
 
 const GENERATOR_CHANNEL_BUFFER: usize = 2;
 
@@ -35,6 +39,7 @@ where
         let (tx, rx) = tokio::sync::mpsc::channel(GENERATOR_CHANNEL_BUFFER);
 
         tokio::spawn(async move {
+            let _permit = GENERATOR_PERMITS.acquire().await.unwrap();
             let mut bytes_written = 0_usize;
             loop {
                 let s = self.next().expect("next returned None");

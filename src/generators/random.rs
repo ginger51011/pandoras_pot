@@ -1,7 +1,7 @@
 use crate::config::GeneratorConfig;
 use rand::{
     distributions::{Alphanumeric, DistString},
-    thread_rng, Rng,
+    thread_rng,
 };
 
 use super::{Generator, P_TAG_SIZE};

@@ -14,13 +14,19 @@ use axum_streams::StreamBodyAs;
 use config::Config;
 use generators::{random::RandomGenerator, Generator, GeneratorContainer};
 use std::{fs, path::PathBuf, process::exit, time::Duration};
-use tokio::net::TcpListener;
+use tokio::{net::TcpListener, sync::Semaphore};
 use tower::{buffer::BufferLayer, limit::RateLimitLayer, ServiceBuilder};
 use tracing_subscriber::prelude::*;
 
 use crate::{config::GeneratorType, generators::markov::MarkovChainGenerator};
 
+// TODO: Make configurable
+///.Max amounts of concurrent streams.
+static MAX_STREAMS: Semaphore = Semaphore::const_new(20);
+
 async fn text_stream(gen: GeneratorContainer) -> impl IntoResponse {
+    let _permit = MAX_STREAMS.acquire().await.unwrap();
+
     // Set some headers to trick le bots
     let mut headers = HeaderMap::new();
     headers.insert("Content-Type", "text/html; charset=utf-8".parse().unwrap());
