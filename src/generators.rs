@@ -32,16 +32,20 @@ where
     /// Creates the generator from a config.
     fn from_config(config: GeneratorConfig) -> Self;
 
-    /// Returns an infinite stream using this generator.
-    fn into_receiver(mut self) -> Receiver<String> {
+    /// Returns an infinite stream using this generator, prepending `<html><body>` to the
+    /// first chunk.
+    fn into_receiver(self) -> Receiver<String> {
         // To provide accurate stats, the buffer must be 1
         let (tx, rx) = tokio::sync::mpsc::channel(1);
 
         tokio::spawn(async move {
             let _permit = GENERATOR_PERMITS.acquire().await.unwrap();
+
+            // Prepend so it kind of looks like a valid website
+            let mut value_iter = ["<html><body>".to_string()].into_iter().chain(self);
             let mut bytes_written = 0_usize;
             loop {
-                let s = self.next().expect("next returned None");
+                let s = value_iter.next().expect("next returned None");
 
                 // The size may be dynamic if the generator does not have a strict
                 // chunk size
