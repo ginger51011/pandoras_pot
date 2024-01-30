@@ -5,7 +5,7 @@ mod handlers;
 
 use axum::{
     error_handling::HandleErrorLayer,
-    http::{HeaderMap, StatusCode},
+    http::{header::CONTENT_TYPE, HeaderMap, StatusCode},
     response::IntoResponse,
     routing::*,
     BoxError, Router,
@@ -23,7 +23,7 @@ use crate::{config::GeneratorType, generators::markov::MarkovChainGenerator};
 async fn text_stream(gen: GeneratorContainer) -> impl IntoResponse {
     // Set some headers to trick le bots
     let mut headers = HeaderMap::new();
-    headers.insert("Content-Type", "text/html; charset=utf-8".parse().unwrap());
+    headers.insert(CONTENT_TYPE, "text/html; charset=utf-8".parse().unwrap());
 
     match gen {
         GeneratorContainer::Random(g) => StreamBodyAs::text(g.into_stream()).headers(headers),
