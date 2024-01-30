@@ -29,7 +29,7 @@ pub(crate) enum GeneratorContainer {
 }
 
 /// Trait that describes a generator that can be converted to a stream,
-/// outputting (probably infinite) amounts of very useful strings.
+/// outputting infinite amounts of very useful strings.
 pub trait Generator
 where
     Self: Sync + Iterator<Item = String> + Clone + Send + 'static,
@@ -37,7 +37,7 @@ where
     /// Creates the generator from a config.
     fn from_config(config: GeneratorConfig) -> Self;
 
-    /// Returns an infinite stream using this generator, prepending `<html><body>` to the
+    /// Returns an infinite stream using this generator, prepending `<html><body>\n` to the
     /// first chunk.
     fn into_receiver(self) -> Receiver<String> {
         // To provide accurate stats, the buffer must be 1
@@ -47,7 +47,7 @@ where
             let _permit = GENERATOR_PERMITS.acquire().await.unwrap();
 
             // Prepend so it kind of looks like a valid website
-            let mut value_iter = ["<html><body>".to_string()].into_iter().chain(self);
+            let mut value_iter = ["<html><body>\n".to_string()].into_iter().chain(self);
             let mut bytes_written = 0_usize;
             loop {
                 let s = value_iter.next().expect("next returned None");

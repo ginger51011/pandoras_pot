@@ -1,6 +1,9 @@
 //! This module contains the types used for configuration.
 
-use std::path::{Path, PathBuf};
+use std::{
+    fmt,
+    path::{Path, PathBuf},
+};
 
 use serde::{Deserialize, Serialize};
 
@@ -137,6 +140,26 @@ pub(crate) enum GeneratorType {
     /// Markov chain that also contains a path to the text to be used for generation
     MarkovChain(PathBuf),
     Static(PathBuf),
+}
+
+impl fmt::Display for GeneratorType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Random => write!(f, "random generator"),
+            Self::MarkovChain(pb) => {
+                write!(
+                    f,
+                    "Markov chain generator with '{}' as data source",
+                    pb.to_string_lossy()
+                )
+            }
+            Self::Static(pb) => write!(
+                f,
+                "static generator with '{}' as data source",
+                pb.to_string_lossy()
+            ),
+        }
+    }
 }
 
 impl Default for GeneratorConfig {
