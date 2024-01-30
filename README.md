@@ -6,7 +6,7 @@
 
 [![Crates.io (pandoras_pot)](https://img.shields.io/crates/v/pandoras_pot)](https://crates.io/crates/pandoras_pot)
 
-## Summary
+# Summary
 Inspired by [HellPot](https://github.com/yunginnanet/HellPot), `pandoras_pot`
 aims to bring even more misery on unruly web crawlers that don't respect your
 `robots.txt`.
@@ -23,7 +23,18 @@ say blazingly fast. *Hopefully*.
 configuration. It can for example generate random strings as data, or "actual"
 sentances using Markov chains. Neato!
 
-## Setting it up
+# Features
+
+- Blazingly fast
+- Written in Rust
+- TOML configuration format, see example below (but sane defaults without config!)
+- Optional health port, for reverse proxy health checks
+- Multiple generator modes, and it is very easy to add more! Send plain random data, text generated using Markov chains, or a static file!
+- Did I mention that it is written in Rust?
+
+# Setting it up
+
+## Web and Reverse Proxy
 
 The most likely use-case is to use another server as a reverse proxy, and then
 select some paths that should be forwarded to `pandoras_pot`, like
@@ -74,7 +85,7 @@ pandoras_pot
 
 Done!
 
-### Using Docker
+## Using Docker
 
 The easiest way to set up `pandoras_pot` is using docker. You can optionally
 pass an argument to a config file using the docker `--build-arg CONFIG=<path to
@@ -158,7 +169,7 @@ print_pretty_logs = true
 no_stdout = false
 ```
 
-## Measuring Output
+# Measuring Output
 
 One simple command to measure output is to use the following command on
 GNU/Linux (make sure to install pipe viewer `pv`):
