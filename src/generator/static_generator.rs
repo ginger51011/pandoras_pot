@@ -1,6 +1,9 @@
 use std::{fs, process::exit};
 
-use crate::config::{GeneratorConfig, GeneratorType};
+use crate::{
+    config::{GeneratorConfig, GeneratorType},
+    error_code,
+};
 
 use super::Generator;
 
@@ -14,9 +17,9 @@ impl Generator for StaticGenerator {
     fn from_config(config: GeneratorConfig) -> Self {
         match config.generator_type {
             GeneratorType::Static(pb) => {
-                let data = fs::read_to_string(&pb).unwrap_or_else(|_| {
+                let data = fs::read_to_string(pb).unwrap_or_else(|_| {
                     println!("Data for static generator must be a path to a readable file.");
-                    exit(33);
+                    exit(error_code::CANNOT_READ_GENERATOR_DATA_FILE);
                 });
                 Self { data }
             }
