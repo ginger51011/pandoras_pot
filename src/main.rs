@@ -107,6 +107,7 @@ async fn main() {
     tracing::subscriber::set_global_default(subscriber).expect("unable to set global subscriber");
 
     // Create gen depending on config
+    tracing::info!("Using generator: {}", config.generator.generator_type);
     let gen = match config.generator.generator_type {
         GeneratorType::Random => GeneratorContainer::Random(RandomGenerator::default()),
         GeneratorType::MarkovChain(_) => {
