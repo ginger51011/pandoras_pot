@@ -1,10 +1,13 @@
 <div align="center">
     <h1>🔥pandoras_pot🍯</h1>
     <i>Unleash Unfathomable Curses on Unsuspecting Bots... In Rust!</i>
-</div>
+<br />
 <br />
 
+[![GitHub License](https://img.shields.io/github/license/ginger51011/pandoras_pot)](https://github.com/ginger51011/pandoras_pot/blob/main/LICENSE)
 [![Crates.io (pandoras_pot)](https://img.shields.io/crates/v/pandoras_pot)](https://crates.io/crates/pandoras_pot)
+[![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/ginger51011/pandoras_pot/rust.yml)](https://github.com/ginger51011/pandoras_pot/actions/)
+</div>
 
 # Summary
 Inspired by [HellPot](https://github.com/yunginnanet/HellPot), `pandoras_pot`
