@@ -142,6 +142,10 @@ type = { name = "random" }
 # a text file as a source of data. Then you can use this (but uncommented, duh):
 # type = { name = "markov_chain", data = "<path to some text file>" }
 
+# Another alternative is a static generator, that always outputs the full contents
+# of a file. Does not respect chunking.
+# type = { name = "static", data = "<path to some file>" }
+
 [logging]
 # Output file for logs.
 output_path = "pandoras.log"

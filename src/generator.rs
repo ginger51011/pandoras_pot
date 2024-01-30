@@ -1,13 +1,17 @@
 //! This module contains structures to create a generator used for data creation.
 
-pub(crate) mod markov;
-pub(crate) mod random;
+pub(crate) mod markov_generator;
+pub(crate) mod random_generator;
+pub(crate) mod static_generator;
 
 use crate::config::GeneratorConfig;
 use futures::Stream;
 use tokio::sync::{mpsc::Receiver, Semaphore};
 
-use self::{markov::MarkovChainGenerator, random::RandomGenerator};
+use self::{
+    markov_generator::MarkovChainGenerator, random_generator::RandomGenerator,
+    static_generator::StaticGenerator,
+};
 
 // TODO: Make configurable
 ///.Max amounts of generators. Currently hardcoded to avoid abuse.
@@ -21,6 +25,7 @@ const P_TAG_SIZE: usize = 0xA;
 pub(crate) enum GeneratorContainer {
     Random(RandomGenerator),
     MarkovChain(MarkovChainGenerator),
+    Static(StaticGenerator),
 }
 
 /// Trait that describes a generator that can be converted to a stream,

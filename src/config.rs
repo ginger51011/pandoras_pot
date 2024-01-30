@@ -136,6 +136,7 @@ pub(crate) enum GeneratorType {
     Random,
     /// Markov chain that also contains a path to the text to be used for generation
     MarkovChain(PathBuf),
+    Static(PathBuf),
 }
 
 impl Default for GeneratorConfig {
