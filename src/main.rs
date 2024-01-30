@@ -1,6 +1,6 @@
 #![forbid(unsafe_code)]
 mod config;
-mod generators;
+mod generator;
 mod handlers;
 
 use axum::{
@@ -12,13 +12,16 @@ use axum::{
 };
 use axum_streams::StreamBodyAs;
 use config::Config;
-use generators::{random::RandomGenerator, Generator, GeneratorContainer};
+use generator::{random_generator::RandomGenerator, Generator, GeneratorContainer};
 use std::{fs, path::PathBuf, process::exit, time::Duration};
 use tokio::net::TcpListener;
 use tower::{buffer::BufferLayer, limit::RateLimitLayer, ServiceBuilder};
 use tracing_subscriber::prelude::*;
 
-use crate::{config::GeneratorType, generators::markov::MarkovChainGenerator};
+use crate::{
+    config::GeneratorType,
+    generator::{markov_generator::MarkovChainGenerator, static_generator::StaticGenerator},
+};
 
 async fn text_stream(gen: GeneratorContainer) -> impl IntoResponse {
     // Set some headers to trick le bots
@@ -28,6 +31,7 @@ async fn text_stream(gen: GeneratorContainer) -> impl IntoResponse {
     match gen {
         GeneratorContainer::Random(g) => StreamBodyAs::text(g.into_stream()).headers(headers),
         GeneratorContainer::MarkovChain(g) => StreamBodyAs::text(g.into_stream()).headers(headers),
+        GeneratorContainer::Static(g) => StreamBodyAs::text(g.into_stream()).headers(headers),
     }
 }
 
@@ -105,6 +109,9 @@ async fn main() {
         GeneratorType::Random => GeneratorContainer::Random(RandomGenerator::default()),
         GeneratorType::MarkovChain(_) => {
             GeneratorContainer::MarkovChain(MarkovChainGenerator::from_config(config.generator))
+        }
+        GeneratorType::Static(_) => {
+            GeneratorContainer::Static(StaticGenerator::from_config(config.generator))
         }
     };
 
