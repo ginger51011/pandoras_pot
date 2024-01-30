@@ -2,7 +2,10 @@ use std::{fs, process::exit};
 
 use markov::Chain;
 
-use crate::config::{GeneratorConfig, GeneratorType};
+use crate::{
+    config::{GeneratorConfig, GeneratorType},
+    error_code,
+};
 
 use super::{Generator, P_TAG_SIZE};
 
@@ -37,7 +40,7 @@ impl Generator for MarkovChainGenerator {
                         "Could not create Markov chain generator due to error:\n\t{}",
                         e
                     );
-                    exit(555);
+                    exit(error_code::CANNOT_READ_GENERATOR_DATA_FILE);
                 });
                 let mut chain: Chain<String> = Chain::new();
                 chain.feed_str(&content);

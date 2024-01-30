@@ -1,7 +1,8 @@
 #![forbid(unsafe_code)]
 mod config;
+mod error_code;
 mod generator;
-mod handlers;
+mod handler;
 
 use axum::{
     error_handling::HandleErrorLayer,
@@ -21,6 +22,7 @@ use tracing_subscriber::prelude::*;
 use crate::{
     config::GeneratorType,
     generator::{markov_generator::MarkovChainGenerator, static_generator::StaticGenerator},
+    handler::RequestHandler,
 };
 
 async fn text_stream(gen: GeneratorContainer) -> impl IntoResponse {
@@ -49,7 +51,7 @@ async fn main() {
                     "File at '{}' could not be parsed as proper config",
                     pb.to_string_lossy()
                 );
-                exit(14);
+                exit(error_code::UNPARSEABLE_CONFIG);
             }
         }
     } else {
@@ -96,7 +98,7 @@ async fn main() {
                 "failed to open log path '{}' due to error:\n\t{}",
                 config.logging.output_path, e
             );
-            exit(3);
+            exit(error_code::CANNOT_OPEN_LOG_FILE);
         }
     };
 
@@ -129,12 +131,12 @@ async fn main() {
         tracing::info!("Listening on routes: {}", config.http.routes.join(", "));
     } else {
         tracing::info!("http.catch_all was disabled, but no routes was provided!");
-        exit(1);
+        exit(error_code::BAD_CONFIG);
     }
 
     // Add tracing to as a layer to our app
     let trace_layer = tower_http::trace::TraceLayer::new_for_http()
-        .on_request(handlers::RequestHandler::new())
+        .on_request(RequestHandler::new())
         .on_response(tower_http::trace::DefaultOnResponse::new().level(tracing::Level::DEBUG))
         .on_eos(tower_http::trace::DefaultOnEos::new().level(tracing::Level::DEBUG))
         .on_failure(tower_http::trace::DefaultOnFailure::new().level(tracing::Level::DEBUG));
@@ -147,7 +149,7 @@ async fn main() {
     if config.http.rate_limit != 0 {
         if config.http.rate_limit_period == 0 {
             println!("You cannot activate rate limiting and then set the period to 0!");
-            exit(39);
+            exit(error_code::BAD_CONFIG);
         }
         // See https://github.com/tokio-rs/axum/discussions/987#discussioncomment-2678115
         app = app.layer(
@@ -172,7 +174,7 @@ async fn main() {
                 "Health port and normal port cannot be the same! (Both are {})",
                 config.http.port
             );
-            exit(88);
+            exit(error_code::BAD_CONFIG);
         }
 
         let health_router = Router::new().fallback_service(get(|| async { "OK\n" }));
