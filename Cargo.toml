@@ -1,10 +1,10 @@
 [package]
 name = "pandoras_pot"
-version = "0.4.5"
-authors = ["Emil Jonathan Eriksso <github.com/ginger51011>"]
+version = "0.4.6"
+authors = ["Emil Jonathan Eriksson <github.com/ginger51011>"]
 edition = "2021"
 description = "Honeypot designed to send huge amounts of data to rude web scrapers"
-keywords = ["honeypot", "web"]
+keywords = ["honeypot", "web", "http"]
 readme = "README.md"
 license = "AGPL-3.0-only"
 repository = "https://github.com/ginger51011/pandoras_pot/"
