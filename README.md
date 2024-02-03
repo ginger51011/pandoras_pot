@@ -174,11 +174,13 @@ no_stdout = false
 
 # Measuring Output
 
-One simple command to measure output is to use the following command on
-GNU/Linux (make sure to install pipe viewer `pv`):
+You can easily measure how fast your setup sends data by using `curl`. Note that using
+`localhost` might not be reliable, as it does not show what an outsider might see. A better
+option might be to use another machine.
+
+This example assume that you have `http.catch_all` enabled, otherwise you should add a
+valid route.
 
 ```sh
-curl -s localhost:8080/ | pv >> /dev/null
+curl localhost:8080/ >> /dev/null
 ```
-
-this assumes that the `/` route is served by `pandoras_pot`.
