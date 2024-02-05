@@ -1,6 +1,7 @@
-use std::{fs, process::exit};
+use std::{fs, process::exit, sync::Arc};
 
 use markov::Chain;
+use tokio::sync::Semaphore;
 
 use crate::{
     config::{GeneratorConfig, GeneratorType},
@@ -17,6 +18,7 @@ pub(crate) struct MarkovChainGenerator {
     /// Chain used to generate responses. Used to hold ownership.,
     /// use `chain_iter`.
     chain: Chain<String>,
+    semaphore: Arc<Semaphore>,
 }
 
 impl Clone for MarkovChainGenerator {
@@ -27,6 +29,7 @@ impl Clone for MarkovChainGenerator {
         Self {
             chunk_size: self.chunk_size,
             chain: new_chain,
+            semaphore: self.semaphore.clone(),
         }
     }
 }
@@ -34,7 +37,7 @@ impl Clone for MarkovChainGenerator {
 impl Generator for MarkovChainGenerator {
     fn from_config(config: GeneratorConfig) -> Self {
         match config.generator_type {
-            GeneratorType::MarkovChain(pb) => {
+            GeneratorType::MarkovChain(ref pb) => {
                 let content = fs::read_to_string(pb).unwrap_or_else(|e| {
                     println!(
                         "Could not create Markov chain generator due to error:\n\t{}",
@@ -47,10 +50,15 @@ impl Generator for MarkovChainGenerator {
                 Self {
                     chunk_size: config.chunk_size,
                     chain,
+                    semaphore: Arc::new(Semaphore::new(config.max_concurrent())),
                 }
             }
             _ => panic!("wrong generator type in config"),
         }
+    }
+
+    fn permits(&self) -> Arc<Semaphore> {
+        self.semaphore.clone()
     }
 }
 

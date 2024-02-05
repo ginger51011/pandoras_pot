@@ -130,6 +130,9 @@ pub(crate) struct GeneratorConfig {
     #[serde(default = "default_generator_generator_type")]
     #[serde(rename = "type")]
     pub generator_type: GeneratorType,
+
+    #[serde(default = "default_generator_max_concurrent")]
+    max_concurrent: usize, // private, use getter instead
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -167,6 +170,19 @@ impl Default for GeneratorConfig {
         Self {
             chunk_size: default_generator_chunk_size(),
             generator_type: default_generator_generator_type(),
+            max_concurrent: default_generator_max_concurrent(),
+        }
+    }
+}
+
+impl GeneratorConfig {
+    /// The max amount of simultaneous generators that can produce output.
+    /// Useful for preventing abuse. `0` means no limit.
+    pub fn max_concurrent(&self) -> usize {
+        if self.max_concurrent == 0 {
+            tokio::sync::Semaphore::MAX_PERMITS
+        } else {
+            self.max_concurrent
         }
     }
 }
@@ -179,6 +195,10 @@ fn default_generator_chunk_size() -> usize {
 
 fn default_generator_generator_type() -> GeneratorType {
     GeneratorType::Random
+}
+
+fn default_generator_max_concurrent() -> usize {
+    100
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

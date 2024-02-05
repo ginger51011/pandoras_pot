@@ -160,6 +160,10 @@ type = { name = "random" }
 # of a file. Does not respect chunking.
 # type = { name = "static", data = "<path to some file>" }
 
+# The max amount of simultaneous generators that can produce output.
+# Useful for preventing abuse. `0` means no limit.
+max_concurrent = 100
+
 [logging]
 # Output file for logs.
 output_path = "pandoras.log"

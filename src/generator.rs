@@ -4,6 +4,8 @@ pub(crate) mod markov_generator;
 pub(crate) mod random_generator;
 pub(crate) mod static_generator;
 
+use std::sync::Arc;
+
 use crate::config::GeneratorConfig;
 use futures::Stream;
 use tokio::sync::{mpsc::Receiver, Semaphore};
@@ -12,10 +14,6 @@ use self::{
     markov_generator::MarkovChainGenerator, random_generator::RandomGenerator,
     static_generator::StaticGenerator,
 };
-
-// TODO: Make configurable
-///.Max amounts of generators. Currently hardcoded to avoid abuse.
-static GENERATOR_PERMITS: Semaphore = Semaphore::const_new(100);
 
 /// Size of wrapping a string in a "<p>\n{<yourstring>}\n</p>\n"
 const P_TAG_SIZE: usize = 0xA;
@@ -37,6 +35,9 @@ where
     /// Creates the generator from a config.
     fn from_config(config: GeneratorConfig) -> Self;
 
+    /// Retrieves a semaphore used as a permit to start generating values.
+    fn permits(&self) -> Arc<Semaphore>;
+
     /// Returns an infinite stream using this generator, prepending `<html><body>\n` to the
     /// first chunk.
     fn into_receiver(self) -> Receiver<String> {
@@ -44,7 +45,12 @@ where
         let (tx, rx) = tokio::sync::mpsc::channel(1);
 
         tokio::spawn(async move {
-            let _permit = GENERATOR_PERMITS.acquire().await.unwrap();
+            let _permit = self.permits().acquire_owned().await.unwrap();
+
+            tracing::debug!(
+                "Acquired permit to generate, {} permits left",
+                self.permits().available_permits()
+            );
 
             // Prepend so it kind of looks like a valid website
             let mut value_iter = ["<html><body>\n".to_string()].into_iter().chain(self);

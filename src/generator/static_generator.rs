@@ -1,4 +1,6 @@
-use std::{fs, process::exit};
+use std::{fs, process::exit, sync::Arc};
+
+use tokio::sync::Semaphore;
 
 use crate::{
     config::{GeneratorConfig, GeneratorType},
@@ -11,20 +13,28 @@ use super::Generator;
 #[derive(Clone, Debug)]
 pub(crate) struct StaticGenerator {
     data: String,
+    semaphore: Arc<Semaphore>,
 }
 
 impl Generator for StaticGenerator {
     fn from_config(config: GeneratorConfig) -> Self {
         match config.generator_type {
-            GeneratorType::Static(pb) => {
+            GeneratorType::Static(ref pb) => {
                 let data = fs::read_to_string(pb).unwrap_or_else(|_| {
                     println!("Data for static generator must be a path to a readable file.");
                     exit(error_code::CANNOT_READ_GENERATOR_DATA_FILE);
                 });
-                Self { data }
+                Self {
+                    data,
+                    semaphore: Arc::new(Semaphore::new(config.max_concurrent())),
+                }
             }
             _ => panic!("wrong generator type in config"),
         }
+    }
+
+    fn permits(&self) -> Arc<Semaphore> {
+        self.semaphore.clone()
     }
 }
 

@@ -1,9 +1,12 @@
+use std::sync::Arc;
+
 use crate::config::GeneratorConfig;
 use rand::{
     distributions::{Alphanumeric, DistString},
     rngs::SmallRng,
     SeedableRng,
 };
+use tokio::sync::Semaphore;
 
 use super::{Generator, P_TAG_SIZE};
 
@@ -12,13 +15,19 @@ pub(crate) struct RandomGenerator {
     /// The range of length for each generated string segment (not
     /// counting HTML) in bytes.
     chunk_size: usize,
+    semaphore: Arc<Semaphore>,
 }
 
 impl Generator for RandomGenerator {
     fn from_config(config: GeneratorConfig) -> Self {
         Self {
             chunk_size: config.chunk_size,
+            semaphore: Arc::new(Semaphore::new(config.max_concurrent())),
         }
+    }
+
+    fn permits(&self) -> Arc<Semaphore> {
+        self.semaphore.clone()
     }
 }
 

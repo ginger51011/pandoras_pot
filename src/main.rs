@@ -109,7 +109,9 @@ async fn main() {
     // Create gen depending on config
     tracing::info!("Using generator: {}", config.generator.generator_type);
     let gen = match config.generator.generator_type {
-        GeneratorType::Random => GeneratorContainer::Random(RandomGenerator::default()),
+        GeneratorType::Random => {
+            GeneratorContainer::Random(RandomGenerator::from_config(config.generator))
+        }
         GeneratorType::MarkovChain(_) => {
             GeneratorContainer::MarkovChain(MarkovChainGenerator::from_config(config.generator))
         }
