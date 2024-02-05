@@ -9,7 +9,7 @@ RUN mv "./$CONFIG" /config
 RUN cargo build --release
 RUN mv ./target/release/pandoras_pot /pandoras_pot
 
-FROM rust:1.75
+FROM debian:bookworm
 
 COPY --from=build /pandoras_pot /pandoras_pot
 COPY --from=build /config /config
