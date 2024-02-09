@@ -47,3 +47,25 @@ impl Iterator for RandomGenerator {
         Some(format!("<p>\n{}\n</p>\n", s))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::{
+        config::{GeneratorConfig, GeneratorType},
+        generator::{
+            random_generator::RandomGenerator, tests::test_generator_is_limited, Generator,
+        },
+    };
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn random_generator_limits() {
+        for limit in 1..100 {
+            let gen_config = GeneratorConfig::new(20, GeneratorType::Random, limit);
+            let gen = RandomGenerator::from_config(gen_config);
+            assert!(
+                test_generator_is_limited(gen, limit),
+                "last generator could produce output while blocked"
+            );
+        }
+    }
+}

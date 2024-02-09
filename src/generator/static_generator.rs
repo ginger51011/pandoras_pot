@@ -51,3 +51,36 @@ impl Iterator for StaticGenerator {
         Some(self.data.clone())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::io::Write;
+
+    use tempfile::NamedTempFile;
+
+    use crate::{
+        config::{GeneratorConfig, GeneratorType},
+        generator::{
+            static_generator::StaticGenerator, tests::test_generator_is_limited, Generator,
+        },
+    };
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn static_generator_limits() {
+        let mut tmpfile: NamedTempFile = tempfile::NamedTempFile::new().unwrap();
+        write!(tmpfile, "I am but a little chain. I do chain things.").unwrap();
+
+        for limit in 1..100 {
+            let gen_config = GeneratorConfig::new(
+                20,
+                GeneratorType::Static(tmpfile.path().to_path_buf()),
+                limit,
+            );
+            let gen = StaticGenerator::from_config(gen_config);
+            assert!(
+                test_generator_is_limited(gen, limit),
+                "last generator could produce output while blocked"
+            );
+        }
+    }
+}
