@@ -37,90 +37,23 @@ async fn text_stream(gen: GeneratorContainer) -> impl IntoResponse {
     }
 }
 
-#[tokio::main]
-async fn main() {
-    // Who needs clap
-    let args: Vec<String> = std::env::args().collect();
-    let config: Config = if args.len() > 1 {
-        let pb = PathBuf::from(args[1].clone());
-        let c = Config::from_path(&pb);
-        match c {
-            Some(actual) => actual,
-            None => {
-                println!(
-                    "File at '{}' could not be parsed as proper config",
-                    pb.to_string_lossy()
-                );
-                exit(error_code::UNPARSEABLE_CONFIG);
-            }
-        }
-    } else {
-        Config::read_from_default_path().unwrap_or_else(|| match Config::default_path() {
-            Some(pb) => {
-                println!(
-                    "No config found at '{}', using a default instead...",
-                    pb.to_string_lossy(),
-                );
-                Config::default()
-            }
-            None => {
-                println!(
-                    "Could not find home directory and config, using default config instead..."
-                );
-                Config::default()
-            }
-        })
-    };
-
-    // Set up tracing
-    let (pretty, ugly) = if config.logging.no_stdout {
-        (None, None)
-    } else if config.logging.print_pretty_logs {
-        (Some(tracing_subscriber::fmt::layer().pretty()), None)
-    } else {
-        (None, Some(tracing_subscriber::fmt::layer()))
-    };
-
-    // None will be ignored, so we will in reality only have one
-    let subscriber = tracing_subscriber::Registry::default()
-        .with(pretty)
-        .with(ugly);
-
-    let json_log = match fs::OpenOptions::new()
-        .write(true)
-        .append(true)
-        .create(true)
-        .open(&config.logging.output_path)
-    {
-        Ok(file) => tracing_subscriber::fmt::layer().json().with_writer(file),
-        Err(e) => {
-            println!(
-                "failed to open log path '{}' due to error:\n\t{}",
-                config.logging.output_path, e
-            );
-            exit(error_code::CANNOT_OPEN_LOG_FILE);
-        }
-    };
-
-    // Set file logging (or not, if we had no output path)
-    let subscriber = subscriber.with(json_log);
-    tracing::subscriber::set_global_default(subscriber).expect("unable to set global subscriber");
+/// Creates a new app from a config.
+fn create_app(config: &Config) -> Router {
+    let mut app = Router::new();
 
     // Create gen depending on config
     tracing::info!("Using generator: {}", config.generator.generator_type);
     let gen = match config.generator.generator_type {
         GeneratorType::Random => {
-            GeneratorContainer::Random(RandomGenerator::from_config(config.generator))
+            GeneratorContainer::Random(RandomGenerator::from_config(config.generator.to_owned()))
         }
-        GeneratorType::MarkovChain(_) => {
-            GeneratorContainer::MarkovChain(MarkovChainGenerator::from_config(config.generator))
-        }
+        GeneratorType::MarkovChain(_) => GeneratorContainer::MarkovChain(
+            MarkovChainGenerator::from_config(config.generator.to_owned()),
+        ),
         GeneratorType::Static(_) => {
-            GeneratorContainer::Static(StaticGenerator::from_config(config.generator))
+            GeneratorContainer::Static(StaticGenerator::from_config(config.generator.to_owned()))
         }
     };
-
-    let mut app = Router::new();
 
     if config.http.catch_all {
         // Since we have no other routes now, all will be passed to the fallback
@@ -171,6 +104,79 @@ async fn main() {
         );
     };
 
+    app
+}
+
+#[tokio::main]
+async fn main() {
+    // Who needs clap
+    let args: Vec<String> = std::env::args().collect();
+    let config: Config = if args.len() > 1 {
+        let pb = PathBuf::from(args[1].clone());
+        let c = Config::from_path(&pb);
+        match c {
+            Some(actual) => actual,
+            None => {
+                println!(
+                    "File at '{}' could not be parsed as proper config",
+                    pb.to_string_lossy()
+                );
+                exit(error_code::UNPARSEABLE_CONFIG);
+            }
+        }
+    } else {
+        Config::read_from_default_path().unwrap_or_else(|| match Config::default_path() {
+            Some(pb) => {
+                println!(
+                    "No config found at '{}', using a default instead...",
+                    pb.to_string_lossy(),
+                );
+                Config::default()
+            }
+            None => {
+                println!(
+                    "Could not find home directory and config, using default config instead..."
+                );
+                Config::default()
+            }
+        })
+    };
+
+    // Set up tracing
+    let (pretty, ugly) = if config.logging.no_stdout {
+        (None, None)
+    } else if config.logging.print_pretty_logs {
+        (Some(tracing_subscriber::fmt::layer().pretty()), None)
+    } else {
+        (None, Some(tracing_subscriber::fmt::layer()))
+    };
+
+    // None will be ignored, so we will in reality only have one
+    let subscriber = tracing_subscriber::Registry::default()
+        .with(pretty)
+        .with(ugly);
+
+    let json_log = match fs::OpenOptions::new()
+        .append(true)
+        .create(true)
+        .open(&config.logging.output_path)
+    {
+        Ok(file) => tracing_subscriber::fmt::layer().json().with_writer(file),
+        Err(e) => {
+            println!(
+                "failed to open log path '{}' due to error:\n\t{}",
+                config.logging.output_path, e
+            );
+            exit(error_code::CANNOT_OPEN_LOG_FILE);
+        }
+    };
+
+    // Set file logging (or not, if we had no output path)
+    let subscriber = subscriber.with(json_log);
+    tracing::subscriber::set_global_default(subscriber).expect("unable to set global subscriber");
+
+    let app = create_app(&config);
+
     if config.http.health_port_enabled {
         if config.http.port == config.http.health_port {
             println!(
@@ -180,6 +186,7 @@ async fn main() {
             exit(error_code::BAD_CONFIG);
         }
 
+        // Use fallback to always respond with the same value
         let health_router = Router::new().fallback_service(get(|| async { "OK\n" }));
         let health_listener = TcpListener::bind(format!("0.0.0.0:{}", config.http.health_port))
             .await
