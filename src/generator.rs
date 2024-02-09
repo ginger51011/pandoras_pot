@@ -83,3 +83,60 @@ where
         tokio_stream::wrappers::ReceiverStream::new(self.into_receiver())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use core::time::Duration;
+    use std::thread;
+
+    use tokio::sync::mpsc::error::TryRecvError;
+
+    use super::Generator;
+
+    /// The duration the sender to a [`Generator::into_receiver()`] is absolutely
+    /// guaranteed to have acquired a permit and sent its first message.
+    const SENDER_WARMUP_DURATION: Duration = Duration::from_millis(5);
+
+    /// Verifies that a generator is limited to a specified amount of concurrent generators.
+    ///
+    /// Tests calling this _must_ have the `#[tokio::test(flavor = "multi_threaded")]` annotation,
+    /// otherwise no thread will ever make senders produce output.
+    pub(crate) fn test_generator_is_limited(gen: impl Generator, limit: usize) -> bool {
+        let mut receivers = Vec::with_capacity(limit);
+        for _ in 0..limit {
+            let g = gen.clone();
+            let r = g.into_receiver();
+            receivers.push(r);
+        }
+
+        thread::sleep(SENDER_WARMUP_DURATION);
+
+        // Ensure all receivers have sent their first message
+        for r in &mut receivers {
+            let _ = r
+                .try_recv()
+                .expect(format!("Receiver within limit have not sent message").as_str());
+        }
+
+        // If we now attempt to use the original generator, it
+        // should be blocked (since we are still holding on to active
+        // receivers)
+        let mut r = gen.into_receiver();
+
+        // This should be instant, but we give it some time
+        thread::sleep(SENDER_WARMUP_DURATION);
+
+        // We want this to be blocked
+        let res = match r.try_recv() {
+            Ok(_) => false,
+            Err(TryRecvError::Disconnected) => false,
+            Err(TryRecvError::Empty) => true,
+        };
+
+        // So we can be completely sure that no generators
+        // were dropped until now
+        std::mem::drop(receivers);
+
+        res
+    }
+}

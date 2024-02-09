@@ -135,6 +135,9 @@ pub(crate) struct GeneratorConfig {
     max_concurrent: usize, // private, use getter instead
 }
 
+// While one could argue being able to pass strings in data as well is nicer, we quickly run into the
+// issue that we might start sending file paths if the user misconfigures. Using only paths makes
+// sure that we will never have to take chanses what we send to bots.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "name", content = "data")]
 #[serde(rename_all = "snake_case")]
@@ -167,15 +170,23 @@ impl fmt::Display for GeneratorType {
 
 impl Default for GeneratorConfig {
     fn default() -> Self {
-        Self {
-            chunk_size: default_generator_chunk_size(),
-            generator_type: default_generator_generator_type(),
-            max_concurrent: default_generator_max_concurrent(),
-        }
+        Self::new(
+            default_generator_chunk_size(),
+            default_generator_generator_type(),
+            default_generator_max_concurrent(),
+        )
     }
 }
 
 impl GeneratorConfig {
+    pub fn new(chunk_size: usize, generator_type: GeneratorType, max_concurrent: usize) -> Self {
+        Self {
+            chunk_size,
+            generator_type,
+            max_concurrent,
+        }
+    }
+
     /// The max amount of simultaneous generators that can produce output.
     /// Useful for preventing abuse. `0` means no limit.
     pub fn max_concurrent(&self) -> usize {
@@ -242,7 +253,7 @@ fn default_logging_no_stdout() -> bool {
 }
 
 #[cfg(test)]
-mod test {
+mod tests {
     use super::Config;
 
     #[test]
