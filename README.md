@@ -11,12 +11,12 @@
 
 # Summary
 Inspired by [HellPot](https://github.com/yunginnanet/HellPot), `pandoras_pot`
-aims to bring even more misery on unruly web crawlers that don't respect your
-`robots.txt`.
+is an HTTP honeypot aims to bring even more misery on unruly web crawlers that
+don't respect your `robots.txt`.
 
-The goal with `pandoras_pot` is to have maximum data output, while not using up
-all the resources of your webserver that probably could be doing better things
-with its time.
+The goal with `pandoras_pot` is to have maximum data output sent to
+connections, while not using up all the resources of your webserver that
+probably could be doing better things with its time.
 
 To ensure that bots don't detect `pandoras_pot`, it generates random data that kind
 of looks like a website (to a bot), really *really* fast. Like crazy fast. One could even
@@ -33,6 +33,7 @@ sentances using Markov chains. Neato!
 - TOML configuration format, see example below (but sane defaults without config!)
 - Optional health port, for reverse proxy health checks
 - Multiple generator modes, and it is very easy to add more! Send plain random data, text generated using Markov chains, or a static file!
+- Configurable abuse protection (max concurrent producing connections, time and size limits)
 - Did I mention that it is written in Rust?
 
 # Setting it up
@@ -163,6 +164,14 @@ type = { name = "random" }
 # The max amount of simultaneous generators that can produce output.
 # Useful for preventing abuse. `0` means no limit.
 max_concurrent = 100
+
+# The amount of time in seconds a generator can be active before
+# it stops sending. `0` means no limit.
+time_limit = 0
+
+# The amount of data in bytes that a generator can
+# send before it stops sending. `0` means no limit.
+size_limit = 0
 
 [logging]
 # Output file for logs.

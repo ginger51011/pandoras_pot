@@ -12,6 +12,7 @@ use super::Generator;
 /// A generator that always returns the same string.
 #[derive(Clone, Debug)]
 pub(crate) struct StaticGenerator {
+    config: GeneratorConfig,
     data: String,
     semaphore: Arc<Semaphore>,
 }
@@ -24,9 +25,11 @@ impl Generator for StaticGenerator {
                     println!("Data for static generator must be a path to a readable file.");
                     exit(error_code::CANNOT_READ_GENERATOR_DATA_FILE);
                 });
+                let semaphore = Arc::new(Semaphore::new(config.max_concurrent()));
                 Self {
+                    config,
                     data,
-                    semaphore: Arc::new(Semaphore::new(config.max_concurrent())),
+                    semaphore,
                 }
             }
             _ => panic!("wrong generator type in config"),
@@ -35,6 +38,10 @@ impl Generator for StaticGenerator {
 
     fn permits(&self) -> Arc<Semaphore> {
         self.semaphore.clone()
+    }
+
+    fn config(&self) -> &GeneratorConfig {
+        &self.config
     }
 }
 
@@ -75,6 +82,8 @@ mod tests {
                 20,
                 GeneratorType::Static(tmpfile.path().to_path_buf()),
                 limit,
+                0,
+                0,
             );
             let gen = StaticGenerator::from_config(gen_config);
             assert!(

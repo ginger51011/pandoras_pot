@@ -133,6 +133,16 @@ pub(crate) struct GeneratorConfig {
 
     #[serde(default = "default_generator_max_concurrent")]
     max_concurrent: usize, // private, use getter instead
+
+    /// The amount of time in seconds a generator can be active before
+    /// it stops sending. `0` means no limit.
+    #[serde(default = "default_generator_time_limit")]
+    pub time_limit: u64,
+
+    /// The amount of data in bytes that a generator can
+    /// send before it stops sending. `0` means no limit.
+    #[serde(default = "default_generator_size_limit")]
+    pub size_limit: usize,
 }
 
 // While one could argue being able to pass strings in data as well is nicer, we quickly run into the
@@ -174,16 +184,26 @@ impl Default for GeneratorConfig {
             default_generator_chunk_size(),
             default_generator_generator_type(),
             default_generator_max_concurrent(),
+            default_generator_time_limit(),
+            default_generator_size_limit(),
         )
     }
 }
 
 impl GeneratorConfig {
-    pub fn new(chunk_size: usize, generator_type: GeneratorType, max_concurrent: usize) -> Self {
+    pub fn new(
+        chunk_size: usize,
+        generator_type: GeneratorType,
+        max_concurrent: usize,
+        time_limit: u64,
+        size_limit: usize,
+    ) -> Self {
         Self {
             chunk_size,
             generator_type,
             max_concurrent,
+            time_limit,
+            size_limit,
         }
     }
 
@@ -210,6 +230,14 @@ fn default_generator_generator_type() -> GeneratorType {
 
 fn default_generator_max_concurrent() -> usize {
     100
+}
+
+fn default_generator_time_limit() -> u64 {
+    0
+}
+
+fn default_generator_size_limit() -> usize {
+    0
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

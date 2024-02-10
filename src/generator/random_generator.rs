@@ -12,22 +12,22 @@ use super::{Generator, P_TAG_SIZE};
 
 #[derive(Clone, Debug)]
 pub(crate) struct RandomGenerator {
-    /// The range of length for each generated string segment (not
-    /// counting HTML) in bytes.
-    chunk_size: usize,
+    config: GeneratorConfig,
     semaphore: Arc<Semaphore>,
 }
 
 impl Generator for RandomGenerator {
     fn from_config(config: GeneratorConfig) -> Self {
-        Self {
-            chunk_size: config.chunk_size,
-            semaphore: Arc::new(Semaphore::new(config.max_concurrent())),
-        }
+        let semaphore = Arc::new(Semaphore::new(config.max_concurrent()));
+        Self { config, semaphore }
     }
 
     fn permits(&self) -> Arc<Semaphore> {
         self.semaphore.clone()
+    }
+
+    fn config(&self) -> &GeneratorConfig {
+        &self.config
     }
 }
 
@@ -43,7 +43,7 @@ impl Iterator for RandomGenerator {
     fn next(&mut self) -> Option<Self::Item> {
         // No need to be secure, we are smacking bots
         let mut smol_rng = SmallRng::from_entropy();
-        let s = Alphanumeric.sample_string(&mut smol_rng, self.chunk_size - P_TAG_SIZE);
+        let s = Alphanumeric.sample_string(&mut smol_rng, self.config().chunk_size - P_TAG_SIZE);
         Some(format!("<p>\n{}\n</p>\n", s))
     }
 }
@@ -60,7 +60,7 @@ mod tests {
     #[tokio::test(flavor = "multi_thread")]
     async fn random_generator_limits() {
         for limit in 1..100 {
-            let gen_config = GeneratorConfig::new(20, GeneratorType::Random, limit);
+            let gen_config = GeneratorConfig::new(20, GeneratorType::Random, limit, 0, 0);
             let gen = RandomGenerator::from_config(gen_config);
             assert!(
                 test_generator_is_limited(gen, limit),

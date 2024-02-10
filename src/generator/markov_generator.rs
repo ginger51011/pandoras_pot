@@ -14,7 +14,7 @@ use super::{Generator, P_TAG_SIZE};
 /// markov chains, each new generated piece of string may not exactly be
 /// `chunk_size`, and might be a bit larger.
 pub(crate) struct MarkovChainGenerator {
-    chunk_size: usize,
+    config: GeneratorConfig,
     /// Chain used to generate responses. Used to hold ownership.,
     /// use `chain_iter`.
     chain: Chain<String>,
@@ -27,7 +27,7 @@ impl Clone for MarkovChainGenerator {
         let mut new_chain = Chain::new();
         new_chain.feed(self.chain.generate());
         Self {
-            chunk_size: self.chunk_size,
+            config: self.config.clone(),
             chain: new_chain,
             semaphore: self.semaphore.clone(),
         }
@@ -47,10 +47,11 @@ impl Generator for MarkovChainGenerator {
                 });
                 let mut chain: Chain<String> = Chain::new();
                 chain.feed_str(&content);
+                let semaphore = Arc::new(Semaphore::new(config.max_concurrent()));
                 Self {
-                    chunk_size: config.chunk_size,
+                    config,
                     chain,
-                    semaphore: Arc::new(Semaphore::new(config.max_concurrent())),
+                    semaphore,
                 }
             }
             _ => panic!("wrong generator type in config"),
@@ -60,13 +61,17 @@ impl Generator for MarkovChainGenerator {
     fn permits(&self) -> Arc<Semaphore> {
         self.semaphore.clone()
     }
+
+    fn config(&self) -> &GeneratorConfig {
+        &self.config
+    }
 }
 
 impl Iterator for MarkovChainGenerator {
     type Item = String;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let desired_size = self.chunk_size - P_TAG_SIZE;
+        let desired_size = self.config().chunk_size - P_TAG_SIZE;
 
         // Add some more, we are going to get a bit too much I think.
         let mut result = String::with_capacity(desired_size + 1024);
@@ -102,6 +107,8 @@ mod tests {
                 20,
                 GeneratorType::MarkovChain(tmpfile.path().to_path_buf()),
                 limit,
+                0,
+                0,
             );
             let gen = MarkovChainGenerator::from_config(gen_config);
             assert!(
