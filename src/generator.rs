@@ -40,7 +40,7 @@ where
 
     /// Returns an infinite stream using this generator, prepending `<html><body>\n` to the
     /// first chunk.
-    fn into_receiver(self) -> Receiver<String> {
+    fn into_receiver(mut self) -> Receiver<String> {
         // To provide accurate stats, the buffer must be 1
         let (tx, rx) = tokio::sync::mpsc::channel(1);
 
@@ -53,10 +53,23 @@ where
             );
 
             // Prepend so it kind of looks like a valid website
-            let mut value_iter = ["<html><body>\n".to_string()].into_iter().chain(self);
             let mut bytes_written = 0_usize;
+
+            // For the first value we want to prepend something to make it look like HTML.
+            // We don't want to just chain it, because then the first chunk of the body always
+            // looks the same.
+            let first_msg = format!("<html><body>{}", self.next().expect("next returned None"));
+            let first_msg_size = first_msg.as_bytes().len();
+            match tx.send(first_msg).await {
+                Ok(_) => bytes_written += first_msg_size,
+                Err(_) => {
+                    tracing::info!("Stream broken before first message could be sent");
+                    return;
+                }
+            }
+
             loop {
-                let s = value_iter.next().expect("next returned None");
+                let s = self.next().expect("next returned None");
 
                 // The size may be dynamic if the generator does not have a strict
                 // chunk size

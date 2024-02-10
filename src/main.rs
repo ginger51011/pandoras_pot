@@ -210,11 +210,17 @@ async fn main() {
 
 #[cfg(test)]
 mod tests {
+    use std::io::Write;
+
     use axum::{body::Body, extract::Request, http::StatusCode, Router};
-    use futures::StreamExt;
+    use tempfile::NamedTempFile;
+    use tokio_stream::StreamExt;
     use tower::ServiceExt; // `oneshot`
 
-    use crate::{config::Config, create_app, error_code};
+    use crate::{
+        config::{Config, GeneratorType},
+        create_app, error_code,
+    };
 
     /// Tests if an app responds with what seems like an infinite stream on
     /// an URI.
@@ -252,7 +258,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn app_cach_all() {
+    async fn app_catch_all() {
         let mut config = Config::default();
         // Just to be sure
         config.http.catch_all = true;
@@ -299,6 +305,39 @@ mod tests {
                 "app did not respond on {} but it should",
                 uri
             )
+        }
+    }
+
+    #[tokio::test]
+    async fn app_with_static_generator() {
+        let msg = "I'm the real slim shady".to_string();
+        let mut tmpfile: NamedTempFile = tempfile::NamedTempFile::new().unwrap();
+        let _ = tmpfile.write(msg.as_bytes()).unwrap();
+
+        let mut config = Config::default();
+        config.generator.generator_type = GeneratorType::Static(tmpfile.path().to_path_buf());
+
+        let app = create_app(&config).unwrap();
+
+        let response = app
+            .oneshot(Request::builder().uri("/").body(Body::empty()).unwrap())
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+
+        // We're safe until we try to actually consume the body. But we can
+        // check if it _looks_ like an infinite stream.
+        let mut body = response.into_body().into_data_stream();
+
+        // First one should just be the tags
+        let first = body.next().await.unwrap().unwrap();
+        assert_eq!(first, format!("<html><body>{msg}"));
+
+        // All the following should be our very useful message
+        for _ in 0..1000 {
+            let chunk = body.next().await.unwrap().unwrap();
+            assert_eq!(chunk, msg);
         }
     }
 
