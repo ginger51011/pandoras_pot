@@ -137,7 +137,7 @@ pub(crate) struct GeneratorConfig {
 
 // While one could argue being able to pass strings in data as well is nicer, we quickly run into the
 // issue that we might start sending file paths if the user misconfigures. Using only paths makes
-// sure that we will never have to take chanses what we send to bots.
+// sure that we will never have to take chances what we send to bots.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "name", content = "data")]
 #[serde(rename_all = "snake_case")]
