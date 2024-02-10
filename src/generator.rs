@@ -4,7 +4,10 @@ pub(crate) mod markov_generator;
 pub(crate) mod random_generator;
 pub(crate) mod static_generator;
 
-use std::sync::Arc;
+use std::{
+    sync::Arc,
+    time::{self, Duration},
+};
 
 use crate::config::GeneratorConfig;
 use futures::Stream;
@@ -35,6 +38,9 @@ where
     /// Creates the generator from a config.
     fn from_config(config: GeneratorConfig) -> Self;
 
+    /// Retrieve the config used for this generator.
+    fn config(&self) -> &GeneratorConfig;
+
     /// Retrieves a semaphore used as a permit to start generating values.
     fn permits(&self) -> Arc<Semaphore>;
 
@@ -60,6 +66,7 @@ where
             // looks the same.
             let first_msg = format!("<html><body>{}", self.next().expect("next returned None"));
             let first_msg_size = first_msg.as_bytes().len();
+            let start_time = time::SystemTime::now();
             match tx.send(first_msg).await {
                 Ok(_) => bytes_written += first_msg_size,
                 Err(_) => {
@@ -68,7 +75,32 @@ where
                 }
             }
 
+            // Don't want to call `self.config()` over and over
+            let time_limit = self.config().time_limit;
+            let time_limit_duration = Duration::from_secs(time_limit);
+            let size_limit = self.config().size_limit;
             loop {
+                // `0` means no limit
+
+                // If system time is messed up, assume no time has passed
+                if time_limit != 0
+                    && (start_time.elapsed().unwrap_or(Duration::from_secs(0))
+                        > time_limit_duration)
+                {
+                    tracing::info!("Time limit was reached ({} s), breaking stream", time_limit,);
+                    return;
+                }
+
+                if size_limit != 0 && bytes_written >= size_limit {
+                    tracing::info!(
+                        "Size limit was reached ({} MB, {} GB)",
+                        (bytes_written as f64) * 1e-6,
+                        (bytes_written as f64) * 1e-9
+                    );
+                    return;
+                }
+
+                // Limits were find, produce some data
                 let s = self.next().expect("next returned None");
 
                 // The size may be dynamic if the generator does not have a strict

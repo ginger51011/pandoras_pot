@@ -210,7 +210,10 @@ async fn main() {
 
 #[cfg(test)]
 mod tests {
-    use std::io::Write;
+    use std::{
+        io::Write,
+        time::{self, Duration},
+    };
 
     use axum::{body::Body, extract::Request, http::StatusCode, Router};
     use tempfile::NamedTempFile;
@@ -330,7 +333,7 @@ mod tests {
         // check if it _looks_ like an infinite stream.
         let mut body = response.into_body().into_data_stream();
 
-        // First one should just be the tags
+        // First one should contain tags as well
         let first = body.next().await.unwrap().unwrap();
         assert_eq!(first, format!("<html><body>{msg}"));
 
@@ -357,6 +360,73 @@ mod tests {
                 error_code::BAD_CONFIG,
                 code
             ),
+        }
+    }
+
+    #[tokio::test]
+    async fn app_size_limited() {
+        let mut config = Config::default();
+        config.generator.size_limit = 1;
+
+        let app = create_app(&config).unwrap();
+
+        let response = app
+            .oneshot(Request::builder().uri("/").body(Body::empty()).unwrap())
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+
+        // We're safe until we try to actually consume the body. But we can
+        // check if it _looks_ like an infinite stream.
+        let mut body = response.into_body().into_data_stream();
+
+        // First should be fine, it is never limited
+        let first = body.next().await.unwrap().unwrap();
+        assert!(first.len() > 0);
+
+        // The next one should be over the limit and the stream should
+        // have closed
+        match body.next().await {
+            Some(_) => panic!("Size limited app sent too much data"),
+            None => return,
+        }
+    }
+
+    #[tokio::test]
+    async fn app_time_limited() {
+        let mut config = Config::default();
+        config.generator.time_limit = 1;
+
+        let app = create_app(&config).unwrap();
+
+        let response = app
+            .oneshot(Request::builder().uri("/").body(Body::empty()).unwrap())
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+
+        let start_time = time::SystemTime::now();
+
+        // We're safe until we try to actually consume the body. But we can
+        // check if it _looks_ like an infinite stream.
+        let mut body = response.into_body().into_data_stream();
+
+        // First should be fine, it is never limited
+        let first = body.next().await.unwrap().unwrap();
+        assert!(first.len() > 0);
+
+        // Take for a while
+        while Duration::from_millis(1010) > start_time.elapsed().unwrap() {
+            let _ = body.next().await;
+        }
+
+        // The next one should be over the limit and the stream should
+        // have closed
+        match body.next().await {
+            Some(_) => panic!("Time limited app sent data for too long"),
+            None => return,
         }
     }
 }
