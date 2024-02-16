@@ -2,6 +2,8 @@ use std::{fs, process::exit, sync::Arc};
 
 use tokio::sync::Semaphore;
 
+use bytes::Bytes;
+
 use crate::{
     config::{GeneratorConfig, GeneratorType},
     error_code,
@@ -13,7 +15,7 @@ use super::Generator;
 #[derive(Clone, Debug)]
 pub(crate) struct StaticGenerator {
     config: GeneratorConfig,
-    data: String,
+    data: Bytes,
     semaphore: Arc<Semaphore>,
 }
 
@@ -28,7 +30,7 @@ impl Generator for StaticGenerator {
                 let semaphore = Arc::new(Semaphore::new(config.max_concurrent()));
                 Self {
                     config,
-                    data,
+                    data: Bytes::from(data),
                     semaphore,
                 }
             }
@@ -52,7 +54,7 @@ impl Default for StaticGenerator {
 }
 
 impl Iterator for StaticGenerator {
-    type Item = String;
+    type Item = Bytes;
 
     fn next(&mut self) -> Option<Self::Item> {
         Some(self.data.clone())
