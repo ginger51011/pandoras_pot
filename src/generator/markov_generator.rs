@@ -13,6 +13,7 @@ use super::{Generator, P_TAG_SIZE};
 /// A generator using Markov chains to generate text. Due to the nature of
 /// markov chains, each new generated piece of string may not exactly be
 /// `chunk_size`, and might be a bit larger.
+#[derive(Debug)]
 pub(crate) struct MarkovChainGenerator {
     config: GeneratorConfig,
     /// Chain used to generate responses. Used to hold ownership.,

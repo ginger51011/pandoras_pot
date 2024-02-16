@@ -22,7 +22,7 @@ use self::{
 const P_TAG_SIZE: usize = 0xA;
 
 /// Container for generators
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub(crate) enum GeneratorContainer {
     Random(RandomGenerator),
     MarkovChain(MarkovChainGenerator),

@@ -176,6 +176,11 @@ async fn main() {
     // Set file logging (or not, if we had no output path)
     let subscriber = subscriber.with(json_log);
     tracing::subscriber::set_global_default(subscriber).expect("unable to set global subscriber");
+    tracing::info!(
+        "Running {} v{}",
+        env!("CARGO_PKG_NAME"),
+        env!("CARGO_PKG_VERSION")
+    );
 
     let app = match create_app(&config) {
         Ok(a) => a,
