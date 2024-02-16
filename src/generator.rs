@@ -5,11 +5,13 @@ pub(crate) mod random_generator;
 pub(crate) mod static_generator;
 
 use std::{
+    fmt::Debug,
     sync::Arc,
     time::{self, Duration},
 };
 
 use crate::config::GeneratorConfig;
+use bytes::Bytes;
 use futures::Stream;
 use tokio::sync::{mpsc::Receiver, Semaphore};
 
@@ -33,7 +35,7 @@ pub(crate) enum GeneratorContainer {
 /// outputting infinite amounts of very useful strings.
 pub trait Generator
 where
-    Self: Sync + Iterator<Item = String> + Clone + Send + 'static,
+    Self: Sync + Iterator<Item = Bytes> + Clone + Send + 'static + Debug,
 {
     /// Creates the generator from a config.
     fn from_config(config: GeneratorConfig) -> Self;
@@ -46,7 +48,7 @@ where
 
     /// Returns an infinite stream using this generator, prepending `<html><body>\n` to the
     /// first chunk.
-    fn into_receiver(mut self) -> Receiver<String> {
+    fn into_receiver(mut self) -> Receiver<Bytes> {
         // To provide accurate stats, the buffer must be 1
         let (tx, rx) = tokio::sync::mpsc::channel(1);
 
@@ -64,16 +66,17 @@ where
             // For the first value we want to prepend something to make it look like HTML.
             // We don't want to just chain it, because then the first chunk of the body always
             // looks the same.
-            let first_msg = format!("<html><body>{}", self.next().expect("next returned None"));
-            let first_msg_size = first_msg.as_bytes().len();
+            // let head = Bytes::from("<html><body>");
+            // let first_msg = head.chain(self.next().expect("next returned None"));
+            // // let first_msg_size = first_msg.len();
             let start_time = time::SystemTime::now();
-            match tx.send(first_msg).await {
-                Ok(_) => bytes_written += first_msg_size,
-                Err(_) => {
-                    tracing::info!("Stream broken before first message could be sent");
-                    return;
-                }
-            }
+            // match tx.send(first_msg).await {
+            //     Ok(_) => bytes_written += 0, //first_msg_size,
+            //     Err(_) => {
+            //         tracing::info!("Stream broken before first message could be sent");
+            //         return;
+            //     }
+            // }
 
             // Don't want to call `self.config()` over and over
             let time_limit = self.config().time_limit;
@@ -105,7 +108,7 @@ where
 
                 // The size may be dynamic if the generator does not have a strict
                 // chunk size
-                let s_size = s.as_bytes().len();
+                let s_size = s.len();
                 match tx.send(s).await {
                     Ok(_) => bytes_written += s_size,
                     Err(_) => {
@@ -124,7 +127,7 @@ where
         rx
     }
 
-    fn into_stream(self) -> impl Stream<Item = String> {
+    fn into_stream(self) -> impl Stream<Item = Bytes> {
         tokio_stream::wrappers::ReceiverStream::new(self.into_receiver())
     }
 }

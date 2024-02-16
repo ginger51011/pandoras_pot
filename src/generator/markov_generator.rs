@@ -1,5 +1,6 @@
 use std::{fs, process::exit, sync::Arc};
 
+use bytes::Bytes;
 use markov::Chain;
 use tokio::sync::Semaphore;
 
@@ -69,7 +70,7 @@ impl Generator for MarkovChainGenerator {
 }
 
 impl Iterator for MarkovChainGenerator {
-    type Item = String;
+    type Item = Bytes;
 
     fn next(&mut self) -> Option<Self::Item> {
         let desired_size = self.config().chunk_size - P_TAG_SIZE;
@@ -81,7 +82,7 @@ impl Iterator for MarkovChainGenerator {
             // each time
             result.push_str(&self.chain.generate_str());
         }
-        Some(format!("<p>\n{}\n</p>\n", result))
+        Some(Bytes::from(format!("<p>\n{}\n</p>\n", result)))
     }
 }
 

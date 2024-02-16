@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use crate::config::GeneratorConfig;
+use bytes::Bytes;
 use rand::{
     distributions::{Alphanumeric, DistString},
     rngs::SmallRng,
@@ -38,13 +39,13 @@ impl Default for RandomGenerator {
 }
 
 impl Iterator for RandomGenerator {
-    type Item = String;
+    type Item = Bytes;
 
     fn next(&mut self) -> Option<Self::Item> {
         // No need to be secure, we are smacking bots
         let mut smol_rng = SmallRng::from_entropy();
         let s = Alphanumeric.sample_string(&mut smol_rng, self.config().chunk_size - P_TAG_SIZE);
-        Some(format!("<p>\n{}\n</p>\n", s))
+        Some(Bytes::from(format!("<p>\n{}\n</p>\n", s)))
     }
 }
 

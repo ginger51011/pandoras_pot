@@ -31,9 +31,11 @@ async fn text_stream(gen: GeneratorContainer) -> impl IntoResponse {
     headers.insert(CONTENT_TYPE, "text/html; charset=utf-8".parse().unwrap());
 
     match gen {
-        GeneratorContainer::Random(g) => StreamBodyAs::text(g.into_stream()).headers(headers),
-        GeneratorContainer::MarkovChain(g) => StreamBodyAs::text(g.into_stream()).headers(headers),
-        GeneratorContainer::Static(g) => StreamBodyAs::text(g.into_stream()).headers(headers),
+        GeneratorContainer::Random(g) => StreamBodyAs::protobuf(g.into_stream()).headers(headers),
+        GeneratorContainer::MarkovChain(g) => {
+            StreamBodyAs::protobuf(g.into_stream()).headers(headers)
+        }
+        GeneratorContainer::Static(g) => StreamBodyAs::protobuf(g.into_stream()).headers(headers),
     }
 }
 
