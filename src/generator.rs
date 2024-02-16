@@ -11,7 +11,7 @@ use std::{
 };
 
 use crate::config::GeneratorConfig;
-use bytes::Bytes;
+use bytes::{Bytes, BytesMut};
 use futures::Stream;
 use tokio::sync::{mpsc::Receiver, Semaphore};
 
@@ -50,7 +50,7 @@ where
     /// first chunk.
     fn into_receiver(mut self) -> Receiver<Bytes> {
         // To provide accurate stats, the buffer must be 1
-        let (tx, rx) = tokio::sync::mpsc::channel(1);
+        let (tx, rx) = tokio::sync::mpsc::channel::<Bytes>(1);
 
         tokio::spawn(async move {
             let _permit = self.permits().acquire_owned().await.unwrap();
@@ -66,17 +66,17 @@ where
             // For the first value we want to prepend something to make it look like HTML.
             // We don't want to just chain it, because then the first chunk of the body always
             // looks the same.
-            // let head = Bytes::from("<html><body>");
-            // let first_msg = head.chain(self.next().expect("next returned None"));
-            // // let first_msg_size = first_msg.len();
+            let mut first_msg = BytesMut::from("<html><body>");
+            first_msg.extend(self.next().expect("next returned None"));
+            let first_msg_size = first_msg.len();
             let start_time = time::SystemTime::now();
-            // match tx.send(first_msg).await {
-            //     Ok(_) => bytes_written += 0, //first_msg_size,
-            //     Err(_) => {
-            //         tracing::info!("Stream broken before first message could be sent");
-            //         return;
-            //     }
-            // }
+            match tx.send(first_msg.freeze()).await {
+                Ok(_) => bytes_written += first_msg_size,
+                Err(_) => {
+                    tracing::info!("Stream broken before first message could be sent");
+                    return;
+                }
+            }
 
             // Don't want to call `self.config()` over and over
             let time_limit = self.config().time_limit;

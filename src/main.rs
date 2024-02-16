@@ -3,6 +3,7 @@ mod config;
 mod error_code;
 mod generator;
 mod handler;
+mod stream_body;
 
 use axum::{
     error_handling::HandleErrorLayer,
@@ -11,10 +12,10 @@ use axum::{
     routing::*,
     BoxError, Router,
 };
-use axum_streams::StreamBodyAs;
 use config::Config;
 use generator::{random_generator::RandomGenerator, Generator, GeneratorContainer};
 use std::{fs, path::PathBuf, process::exit, time::Duration};
+use stream_body::StreamBody;
 use tokio::net::TcpListener;
 use tower::{buffer::BufferLayer, limit::RateLimitLayer, ServiceBuilder};
 use tracing_subscriber::prelude::*;
@@ -31,11 +32,11 @@ async fn text_stream(gen: GeneratorContainer) -> impl IntoResponse {
     headers.insert(CONTENT_TYPE, "text/html; charset=utf-8".parse().unwrap());
 
     match gen {
-        GeneratorContainer::Random(g) => StreamBodyAs::protobuf(g.into_stream()).headers(headers),
+        GeneratorContainer::Random(g) => StreamBody::from_stream(g.into_stream()).headers(headers),
         GeneratorContainer::MarkovChain(g) => {
-            StreamBodyAs::protobuf(g.into_stream()).headers(headers)
+            StreamBody::from_stream(g.into_stream()).headers(headers)
         }
-        GeneratorContainer::Static(g) => StreamBodyAs::protobuf(g.into_stream()).headers(headers),
+        GeneratorContainer::Static(g) => StreamBody::from_stream(g.into_stream()).headers(headers),
     }
 }
 
