@@ -60,14 +60,23 @@ fn create_app(config: &Config) -> Result<Router, i32> {
         }
     };
 
+    const ANY_METHOD: MethodFilter = MethodFilter::DELETE
+        .or(MethodFilter::GET)
+        .or(MethodFilter::HEAD) // TODO: Acutally transmit an infinite header
+        .or(MethodFilter::OPTIONS)
+        .or(MethodFilter::PATCH)
+        .or(MethodFilter::POST)
+        .or(MethodFilter::PUT)
+        .or(MethodFilter::TRACE);
+
     if config.http.catch_all {
         // Since we have no other routes now, all will be passed to the fallback
-        app = app.fallback(get(move || text_stream(gen)));
+        app = app.fallback(on(ANY_METHOD, move || text_stream(gen)));
         tracing::info!("Catch-All enabled");
     } else if !config.http.routes.is_empty() {
         for route in &config.http.routes {
             let gen = gen.clone();
-            app = app.route(route, get(move || text_stream(gen)));
+            app = app.route(route, on(ANY_METHOD, move || text_stream(gen)));
         }
         tracing::info!("Listening on routes: {}", config.http.routes.join(", "));
     } else {
@@ -223,7 +232,12 @@ mod tests {
         time::{self, Duration},
     };
 
-    use axum::{body::Body, extract::Request, http::StatusCode, Router};
+    use axum::{
+        body::Body,
+        extract::Request,
+        http::{Method, StatusCode},
+        Router,
+    };
     use tempfile::NamedTempFile;
     use tokio_stream::StreamExt;
     use tower::ServiceExt; // `oneshot`
@@ -236,25 +250,33 @@ mod tests {
     /// Tests if an app responds with what seems like an infinite stream on
     /// an URI.
     async fn app_responds_on_uri(app: Router, uri: &str) -> bool {
-        let response = app
-            .oneshot(Request::builder().uri(uri).body(Body::empty()).unwrap())
-            .await
-            .unwrap();
+        for method in &[Method::GET, Method::POST, Method::DELETE] {
+            let app = app.clone();
+            let response = app
+                .oneshot(
+                    Request::builder()
+                        .method(method)
+                        .uri(uri)
+                        .body(Body::empty())
+                        .unwrap(),
+                )
+                .await
+                .unwrap();
 
-        if response.status() != StatusCode::OK {
-            return false;
+            if response.status() != StatusCode::OK {
+                return false;
+            }
+
+            // We're safe until we try to actually consume the body. But we can
+            // check if it _looks_ like an infinite stream.
+            let mut body = response.into_body().into_data_stream();
+            for _ in 0..1000 {
+                match body.next().await {
+                    Some(b) => assert!(b.unwrap().len() > 0),
+                    None => return false,
+                };
+            }
         }
-
-        // We're safe until we try to actually consume the body. But we can
-        // check if it _looks_ like an infinite stream.
-        let mut body = response.into_body().into_data_stream();
-        for _ in 0..1000 {
-            match body.next().await {
-                Some(b) => assert!(b.unwrap().len() > 0),
-                None => return false,
-            };
-        }
-
         true
     }
 
