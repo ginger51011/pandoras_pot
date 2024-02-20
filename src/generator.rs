@@ -66,7 +66,7 @@ where
             // For the first value we want to prepend something to make it look like HTML.
             // We don't want to just chain it, because then the first chunk of the body always
             // looks the same.
-            let mut first_msg = BytesMut::from("<html><body>");
+            let mut first_msg = BytesMut::from("<!DOCTYPE html><html><body>");
             first_msg.extend(self.next().expect("next returned None"));
             let first_msg_size = first_msg.len();
             let start_time = time::SystemTime::now();
