@@ -98,20 +98,20 @@ fn default_http_routes() -> Vec<String> {
     vec!["/".to_string()]
 }
 
-fn default_http_catch_all() -> bool {
+const fn default_http_catch_all() -> bool {
     true
 }
 
-fn default_http_rate_limit() -> u64 {
+const fn default_http_rate_limit() -> u64 {
     0
 }
 
-fn default_http_rate_limit_period() -> u64 {
+const fn default_http_rate_limit_period() -> u64 {
     // 5 minutes
     5 * 60
 }
 
-fn default_http_health_port_enabled() -> bool {
+const fn default_http_health_port_enabled() -> bool {
     false
 }
 
@@ -220,23 +220,23 @@ impl GeneratorConfig {
 
 // Note naming convention for these
 
-fn default_generator_chunk_size() -> usize {
+const fn default_generator_chunk_size() -> usize {
     1024 * 16
 }
 
-fn default_generator_generator_type() -> GeneratorType {
+const fn default_generator_generator_type() -> GeneratorType {
     GeneratorType::Random
 }
 
-fn default_generator_max_concurrent() -> usize {
+const fn default_generator_max_concurrent() -> usize {
     100
 }
 
-fn default_generator_time_limit() -> u64 {
+const fn default_generator_time_limit() -> u64 {
     0
 }
 
-fn default_generator_size_limit() -> usize {
+const fn default_generator_size_limit() -> usize {
     0
 }
 
@@ -272,11 +272,11 @@ fn default_logging_output_path() -> String {
     "pandoras.log".to_string()
 }
 
-fn default_logging_print_pretty_logs() -> bool {
+const fn default_logging_print_pretty_logs() -> bool {
     true
 }
 
-fn default_logging_no_stdout() -> bool {
+const fn default_logging_no_stdout() -> bool {
     false
 }
 
