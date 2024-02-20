@@ -245,6 +245,7 @@ mod tests {
     use crate::{
         config::{Config, GeneratorType},
         create_app, error_code,
+        generator::FIRST_MSG_PREFIX,
     };
 
     /// Tests if an app responds with what seems like an infinite stream on
@@ -365,7 +366,7 @@ mod tests {
 
         // First one should contain tags as well
         let first = body.next().await.unwrap().unwrap();
-        assert_eq!(first, format!("<html><body>{msg}"));
+        assert_eq!(first, format!("{FIRST_MSG_PREFIX}{msg}"));
 
         // All the following should be our very useful message
         for _ in 0..1000 {

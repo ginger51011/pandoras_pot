@@ -20,8 +20,12 @@ use self::{
     static_generator::StaticGenerator,
 };
 
-/// Size of wrapping a string in a "<p>\n{<yourstring>}\n</p>\n"
+/// Size of wrapping a string in a "<p>\n{<yourstring>}\n</p>\n".
 const P_TAG_SIZE: usize = 0xA;
+
+/// Prefix to be added to the first sent generated message to make it look like
+/// a very real and legit HTML page.
+pub const FIRST_MSG_PREFIX: &str = "<!DOCTYPE html><html><body>";
 
 /// Container for generators
 #[derive(Clone, Debug)]
@@ -66,7 +70,7 @@ where
             // For the first value we want to prepend something to make it look like HTML.
             // We don't want to just chain it, because then the first chunk of the body always
             // looks the same.
-            let mut first_msg = BytesMut::from("<!DOCTYPE html><html><body>");
+            let mut first_msg = BytesMut::from(FIRST_MSG_PREFIX);
             first_msg.extend(self.next().expect("next returned None"));
             let first_msg_size = first_msg.len();
             let start_time = time::SystemTime::now();
