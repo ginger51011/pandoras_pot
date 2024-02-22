@@ -9,7 +9,7 @@ use axum::{
     error_handling::HandleErrorLayer,
     http::{header::CONTENT_TYPE, HeaderMap, StatusCode},
     response::IntoResponse,
-    routing::*,
+    routing::{get, on, MethodFilter},
     BoxError, Router,
 };
 use config::Config;
@@ -50,13 +50,13 @@ fn create_app(config: &Config) -> Result<Router, i32> {
     tracing::info!("Using generator: {}", config.generator.generator_type);
     let gen = match config.generator.generator_type {
         GeneratorType::Random => {
-            GeneratorContainer::Random(RandomGenerator::from_config(config.generator.to_owned()))
+            GeneratorContainer::Random(RandomGenerator::from_config(config.generator.clone()))
         }
         GeneratorType::MarkovChain(_) => GeneratorContainer::MarkovChain(
-            MarkovChainGenerator::from_config(config.generator.to_owned()),
+            MarkovChainGenerator::from_config(config.generator.clone()),
         ),
         GeneratorType::Static(_) => {
-            GeneratorContainer::Static(StaticGenerator::from_config(config.generator.to_owned()))
+            GeneratorContainer::Static(StaticGenerator::from_config(config.generator.clone()))
         }
     };
 
@@ -107,7 +107,7 @@ fn create_app(config: &Config) -> Result<Router, i32> {
                 .layer(HandleErrorLayer::new(|err: BoxError| async move {
                     (
                         StatusCode::INTERNAL_SERVER_ERROR,
-                        format!("Unhandled error: {}", err),
+                        format!("Unhandled error: {err}"),
                     )
                 }))
                 .layer(BufferLayer::new(1024))
@@ -128,26 +128,24 @@ async fn main() {
     let config: Config = if args.len() > 1 {
         let pb = PathBuf::from(args[1].clone());
         let c = Config::from_path(&pb);
-        match c {
-            Some(actual) => actual,
-            None => {
-                println!(
-                    "File at '{}' could not be parsed as proper config",
-                    pb.to_string_lossy()
-                );
-                exit(error_code::UNPARSEABLE_CONFIG);
-            }
+        if let Some(actual) = c {
+            actual
+        } else {
+            println!(
+                "File at '{}' could not be parsed as proper config",
+                pb.to_string_lossy()
+            );
+            exit(error_code::UNPARSEABLE_CONFIG);
         }
     } else {
-        Config::read_from_default_path().unwrap_or_else(|| match Config::default_path() {
-            Some(pb) => {
+        Config::read_from_default_path().unwrap_or_else(|| {
+            if let Some(pb) = Config::default_path() {
                 println!(
                     "No config found at '{}', using a default instead...",
                     pb.to_string_lossy(),
                 );
                 Config::default()
-            }
-            None => {
+            } else {
                 println!(
                     "Could not find home directory and config, using default config instead..."
                 );

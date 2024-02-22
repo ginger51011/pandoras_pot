@@ -36,9 +36,7 @@ impl tower_http::trace::OnRequest<Body> for RequestHandler {
             }
         }
 
-        let client_ip = client_ip
-            .map(|ip| ip.to_str().unwrap_or("unknown"))
-            .unwrap_or("unknown");
+        let client_ip = client_ip.map_or("unknown", |ip| ip.to_str().unwrap_or("unknown"));
 
         tracing::info!(
             "Hostile proxied IP '{}' connected to URI '{}'",

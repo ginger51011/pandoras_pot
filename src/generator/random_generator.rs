@@ -45,7 +45,7 @@ impl Iterator for RandomGenerator {
         // No need to be secure, we are smacking bots
         let mut smol_rng = SmallRng::from_entropy();
         let s = Alphanumeric.sample_string(&mut smol_rng, self.config().chunk_size - P_TAG_SIZE);
-        Some(Bytes::from(format!("<p>\n{}\n</p>\n", s)))
+        Some(Bytes::from(format!("<p>\n{s}\n</p>\n")))
     }
 }
 

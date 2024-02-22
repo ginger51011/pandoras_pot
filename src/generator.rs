@@ -74,13 +74,12 @@ where
             first_msg.extend(self.next().expect("next returned None"));
             let first_msg_size = first_msg.len();
             let start_time = time::SystemTime::now();
-            match tx.send(first_msg.freeze()).await {
-                Ok(_) => bytes_written += first_msg_size,
-                Err(_) => {
-                    tracing::info!("Stream broken before first message could be sent");
-                    return;
-                }
-            }
+            if tx.send(first_msg.freeze()).await.is_ok() {
+                bytes_written += first_msg_size;
+            } else {
+                tracing::info!("Stream broken before first message could be sent");
+                return;
+            };
 
             // Don't want to call `self.config()` over and over
             let time_limit = self.config().time_limit;
@@ -100,7 +99,7 @@ where
 
                 if size_limit != 0 && bytes_written >= size_limit {
                     tracing::info!(
-                        "Size limit was reached ({} MB, {} GB)",
+                        "Size limit was reached ({:.2} MB, {:.2} GB)",
                         (bytes_written as f64) * 1e-6,
                         (bytes_written as f64) * 1e-9
                     );
@@ -113,18 +112,17 @@ where
                 // The size may be dynamic if the generator does not have a strict
                 // chunk size
                 let s_size = s.len();
-                match tx.send(s).await {
-                    Ok(_) => bytes_written += s_size,
-                    Err(_) => {
-                        // TODO: Add metadata
-                        tracing::info!(
-                            "Stream broken, wrote {} MB, or {} GB",
-                            (bytes_written as f64) * 1e-6,
-                            (bytes_written as f64) * 1e-9
-                        );
-                        break;
-                    }
-                }
+                if tx.send(s).await.is_ok() {
+                    bytes_written += s_size;
+                } else {
+                    // TODO: Add metadata
+                    tracing::info!(
+                        "Stream broken, wrote {:.2} MB, or {:.2} GB",
+                        (bytes_written as f64) * 1e-6,
+                        (bytes_written as f64) * 1e-9
+                    );
+                    break;
+                };
             }
         });
 

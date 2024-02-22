@@ -82,7 +82,7 @@ impl Iterator for MarkovChainGenerator {
             // each time
             result.push_str(&self.chain.generate_str());
         }
-        Some(Bytes::from(format!("<p>\n{}\n</p>\n", result)))
+        Some(Bytes::from(format!("<p>\n{result}\n</p>\n")))
     }
 }
 
