@@ -148,7 +148,8 @@ health_port = "8081"
 
 [generator]
 # The size of each generated chunk in bytes. Has a big impact on performance, so
-# play around a bit!
+# play around a bit! Note that if this is set too low (like 10 bytes), `pandoras_pot`
+# will refuse to run.
 chunk_size = 16384 # 1024 * 16
 # The type of generator to be used
 type = { name = "random" }
