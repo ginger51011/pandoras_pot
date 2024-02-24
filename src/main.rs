@@ -22,7 +22,9 @@ use tracing_subscriber::prelude::*;
 
 use crate::{
     config::GeneratorType,
-    generator::{markov_generator::MarkovChainGenerator, static_generator::StaticGenerator},
+    generator::{
+        markov_generator::MarkovChainGenerator, static_generator::StaticGenerator, P_TAG_SIZE,
+    },
     handler::RequestHandler,
 };
 
@@ -44,6 +46,15 @@ async fn text_stream(gen: GeneratorContainer) -> impl IntoResponse {
 ///
 /// Returns an exit code in case of configuration errors.
 fn create_app(config: &Config) -> Result<Router, i32> {
+    // This will mess upp for example markov
+    if config.generator.chunk_size < P_TAG_SIZE {
+        println!(
+            "generator.chunk_size too small (min size is {}, but it should be bigger!)",
+            P_TAG_SIZE
+        );
+        return Err(error_code::GENERATOR_CHUNK_SIZE_TOO_SMALL);
+    }
+
     let mut app = Router::new();
 
     // Create gen depending on config
@@ -80,7 +91,7 @@ fn create_app(config: &Config) -> Result<Router, i32> {
         }
         tracing::info!("Listening on routes: {}", config.http.routes.join(", "));
     } else {
-        tracing::info!("http.catch_all was disabled, but no routes was provided!");
+        println!("http.catch_all was disabled, but no routes was provided!");
         return Err(error_code::BAD_CONFIG);
     }
 
@@ -243,7 +254,7 @@ mod tests {
     use crate::{
         config::{Config, GeneratorType},
         create_app, error_code,
-        generator::FIRST_MSG_PREFIX,
+        generator::{FIRST_MSG_PREFIX, P_TAG_SIZE},
     };
 
     /// Tests if an app responds with what seems like an infinite stream on
@@ -287,6 +298,16 @@ mod tests {
             app_responds_on_uri(app, "/").await,
             "app did not respond on root uri"
         );
+    }
+
+    #[tokio::test]
+    async fn app_too_small_chunk_size() {
+        let mut config = Config::default();
+        config.generator.chunk_size = P_TAG_SIZE - 3;
+        match create_app(&config) {
+            Err(code) => assert_eq!(code, error_code::GENERATOR_CHUNK_SIZE_TOO_SMALL),
+            _ => panic!("too small chunk size was allowed"),
+        }
     }
 
     #[tokio::test]

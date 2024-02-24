@@ -122,7 +122,8 @@ fn default_http_health_port() -> String {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct GeneratorConfig {
     /// The size of each generated chunk in bytes. Has a big impact on performance, so
-    /// play around a bit!
+    /// play around a bit! Note that if this is set too low (like 10 bytes), `pandoras_pot`
+    /// will refuse to run.
     #[serde(default = "default_generator_chunk_size")]
     pub chunk_size: usize,
 

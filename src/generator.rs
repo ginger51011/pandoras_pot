@@ -21,7 +21,8 @@ use self::{
 };
 
 /// Size of wrapping a string in a "<p>\n{<yourstring>}\n</p>\n".
-const P_TAG_SIZE: usize = 0xA;
+/// `generator.chunk_size` must be larger than this.
+pub(crate) const P_TAG_SIZE: usize = 10;
 
 /// Prefix to be added to the first sent generated message to make it look like
 /// a very real and legit HTML page.
