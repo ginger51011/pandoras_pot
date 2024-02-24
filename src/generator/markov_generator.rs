@@ -1,7 +1,8 @@
 use std::{fs, process::exit, sync::Arc};
 
 use bytes::Bytes;
-use markov::Chain;
+use markovish::Chain;
+use rand::{rngs::SmallRng, SeedableRng};
 use tokio::sync::Semaphore;
 
 use crate::{
@@ -18,7 +19,7 @@ use super::{Generator, P_TAG_SIZE};
 pub(crate) struct MarkovChainGenerator {
     config: GeneratorConfig,
     /// Chain used to generate responses
-    chain: Arc<Chain<String>>,
+    chain: Arc<Chain>,
     semaphore: Arc<Semaphore>,
 }
 
@@ -34,8 +35,8 @@ impl Generator for MarkovChainGenerator {
                     exit(error_code::CANNOT_READ_GENERATOR_DATA_FILE);
                 });
 
-                let mut chain: Chain<String> = Chain::new();
-                chain.feed_str(&content);
+                let chain: Chain =
+                    Chain::from_text(&content).expect("could not create markov chain from file");
 
                 let semaphore = Arc::new(Semaphore::new(config.max_concurrent()));
                 Self {
@@ -63,12 +64,31 @@ impl Iterator for MarkovChainGenerator {
     fn next(&mut self) -> Option<Self::Item> {
         let desired_size = self.config().chunk_size - P_TAG_SIZE;
 
-        // Add some more, we are going to get a bit too much I think.
-        let mut result = String::with_capacity(desired_size + 1024);
-        while result.as_bytes().len() < desired_size {
-            // Must do it this way to get a new generated string
-            // each time
-            result.push_str(&self.chain.generate_str());
+        let mut result = String::with_capacity(desired_size + 100);
+        let mut smol_rng = SmallRng::from_entropy();
+        'outer: while result.as_bytes().len() < desired_size {
+            // We don't want to check result size every time, but we cannot know
+            // how large a token is. But most of them are (probably English) words,
+            // most words are 5 chars long and each English UTF-8 char
+            // is 1 byte. So we take a guess and see later.
+            let size_left = desired_size - result.as_bytes().len();
+            let likely_token_n = size_left / 5;
+
+            if likely_token_n == 0 {
+                break;
+            }
+
+            let generated_strs = &self.chain.generate_str(&mut smol_rng, likely_token_n)?;
+
+            // Cut off if we took too many
+            let mut current_size = 0;
+            for s in generated_strs {
+                result.push_str(s);
+                current_size += s.as_bytes().len();
+                if current_size > size_left {
+                    break 'outer;
+                }
+            }
         }
         Some(Bytes::from(format!("<p>\n{result}\n</p>\n")))
     }
