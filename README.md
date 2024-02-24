@@ -110,7 +110,7 @@ docker build -t pandoras_pot . # You can add --build-arg CONFIG=<...> here
 docker run --name=pandoras_pot --restart=always -p 6669:8080 -d pandoras_pot
 ```
 
-## Configuration 
+## Configuration
 
 `pandoras_pot` uses toml as a configuration format. If you are not using docker,
 you can either pass a config like an argument like so:
@@ -197,3 +197,19 @@ valid route.
 ```sh
 curl localhost:8080/ >> /dev/null
 ```
+
+# Support
+
+I do not accept any donations. If you however find any software I
+write for fun useful, please consider donating to an efficient charity that
+save or improve lives the most per `$CURRENCY`.
+
+[GiveWell.org](https://givewell.org) is an excellent website that can help you
+donate to the worlds most efficient charities. Alternatives listing the current
+best charities for helping our planet is [Founders Pledge](https://www.founderspledge.com/funds/climate-change-fund), and for
+animal welfare [Animal Charity Evaluators](https://animalcharityevaluators.org/donation-advice/recommended-charity-fund/).
+
+- Residents of Sweden can do tax-deductable donations to GiveWell via [Ge Effektivt](https://geeffektivt.se)
+- Residents of Norway can do the same via [Gi Effektivt](https://gieffektivt.no/)
+
+This list is not exhaustive; your country may have an equivalent.
