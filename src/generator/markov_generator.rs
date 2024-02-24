@@ -14,26 +14,12 @@ use super::{Generator, P_TAG_SIZE};
 /// A generator using Markov chains to generate text. Due to the nature of
 /// markov chains, each new generated piece of string may not exactly be
 /// `chunk_size`, and might be a bit larger.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub(crate) struct MarkovChainGenerator {
     config: GeneratorConfig,
-    /// Chain used to generate responses. Used to hold ownership.,
-    /// use `chain_iter`.
-    chain: Chain<String>,
+    /// Chain used to generate responses
+    chain: Arc<Chain<String>>,
     semaphore: Arc<Semaphore>,
-}
-
-impl Clone for MarkovChainGenerator {
-    fn clone(&self) -> Self {
-        // Create a new chain, since it doesn't implement clone by itself...
-        let mut new_chain = Chain::new();
-        new_chain.feed(self.chain.generate());
-        Self {
-            config: self.config.clone(),
-            chain: new_chain,
-            semaphore: self.semaphore.clone(),
-        }
-    }
 }
 
 impl Generator for MarkovChainGenerator {
@@ -47,12 +33,14 @@ impl Generator for MarkovChainGenerator {
                     );
                     exit(error_code::CANNOT_READ_GENERATOR_DATA_FILE);
                 });
+
                 let mut chain: Chain<String> = Chain::new();
                 chain.feed_str(&content);
+
                 let semaphore = Arc::new(Semaphore::new(config.max_concurrent()));
                 Self {
                     config,
-                    chain,
+                    chain: Arc::new(chain),
                     semaphore,
                 }
             }
