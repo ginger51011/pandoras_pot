@@ -475,9 +475,9 @@ checksum = "b5e6163cb8c49088c2c36f57875e58ccd8c87c7427f7fbd50ea6710b2f3f2e8f"
 
 [[package]]
 name = "markovish"
-version = "0.1.0"
+version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f0d5d7de78803e3f21743a4382641d9c5fc8cd42afb5f2e3692bdd533b1ae914"
+checksum = "48c04ab5d8ea7bd3f5b281ccda0e02d8bbb3f44e1c9f8fabd9753c898460151b"
 dependencies = [
  "hashbrown",
  "itertools",

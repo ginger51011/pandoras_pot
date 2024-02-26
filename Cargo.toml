@@ -32,7 +32,7 @@ toml = "0.8.8"
 home = "0.5.9"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["json"]}
-markovish = { version = "0.1.0" }
+markovish = { version = "0.1.4" }
 bytes = "1.5.0"
 http-body = "1.0.0"
 
