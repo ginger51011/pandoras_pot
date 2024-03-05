@@ -18,6 +18,8 @@ use std::{fs, path::PathBuf, process::exit, time::Duration};
 use stream_body::StreamBody;
 use tokio::net::TcpListener;
 use tower::{buffer::BufferLayer, limit::RateLimitLayer, ServiceBuilder};
+use tower_http::trace::MakeSpan;
+use tracing::info_span;
 use tracing_subscriber::prelude::*;
 
 use crate::{
@@ -27,6 +29,31 @@ use crate::{
     },
     handler::RequestHandler,
 };
+
+/// Used to provide a span that will hold metadata about a connection, so it can be tracked.
+#[derive(Clone, Debug)]
+struct PandoraRequestSpan;
+impl<B> MakeSpan<B> for PandoraRequestSpan {
+    fn make_span(&mut self, request: &axum::http::Request<B>) -> tracing::Span {
+        let version_string = match request.version() {
+            axum::http::Version::HTTP_09 => "HTTP/0.9".to_string(),
+            axum::http::Version::HTTP_10 => "HTTP/1.0".to_string(),
+            axum::http::Version::HTTP_11 => "HTTP/1.1".to_string(),
+            axum::http::Version::HTTP_2 => "HTTP/2".to_string(),
+            axum::http::Version::HTTP_3 => "HTTP/3".to_string(),
+            _ => "UNKNOWN".to_string(),
+        };
+        info_span!(
+            "request",
+            version = version_string,
+            method = request.method().to_string(),
+            uri = request.uri().to_string(),
+            proxied_ip = tracing::field::Empty, // Set later by our RequestHandler
+            origin_ip = tracing::field::Empty,  // TODO: Same as above, will generally be the
+                                                // reverse proxy
+        )
+    }
+}
 
 async fn text_stream(gen: GeneratorContainer) -> impl IntoResponse {
     // Set some headers to trick le bots
@@ -80,14 +107,16 @@ fn create_app(config: &Config) -> Result<Router, i32> {
         .or(MethodFilter::PUT)
         .or(MethodFilter::TRACE);
 
+    // We add a span to the handler, so each request will have its logged described
+    let handler = move || text_stream(gen);
     if config.http.catch_all {
         // Since we have no other routes now, all will be passed to the fallback
-        app = app.fallback(on(ANY_METHOD, move || text_stream(gen)));
+        app = app.fallback(on(ANY_METHOD, handler));
         tracing::info!("Catch-All enabled");
     } else if !config.http.routes.is_empty() {
         for route in &config.http.routes {
-            let gen = gen.clone();
-            app = app.route(route, on(ANY_METHOD, move || text_stream(gen)));
+            let handler = handler.clone();
+            app = app.route(route, on(ANY_METHOD, handler));
         }
         tracing::info!("Listening on routes: {}", config.http.routes.join(", "));
     } else {
@@ -95,8 +124,9 @@ fn create_app(config: &Config) -> Result<Router, i32> {
         return Err(error_code::BAD_CONFIG);
     }
 
-    // Add tracing to as a layer to our app
+    // Add tracing to as a layer to our app, span must hold some records that we are interested in
     let trace_layer = tower_http::trace::TraceLayer::new_for_http()
+        .make_span_with(PandoraRequestSpan)
         .on_request(RequestHandler::new())
         .on_response(tower_http::trace::DefaultOnResponse::new().level(tracing::Level::DEBUG))
         .on_eos(tower_http::trace::DefaultOnEos::new().level(tracing::Level::DEBUG))

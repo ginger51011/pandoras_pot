@@ -14,6 +14,7 @@ use crate::config::GeneratorConfig;
 use bytes::{Bytes, BytesMut};
 use futures::Stream;
 use tokio::sync::{mpsc::Receiver, Semaphore};
+use tracing::{Instrument, Span};
 
 use self::{
     markov_generator::MarkovChainGenerator, random_generator::RandomGenerator,
@@ -57,75 +58,81 @@ where
         // To provide accurate stats, the buffer must be 1
         let (tx, rx) = tokio::sync::mpsc::channel::<Bytes>(1);
 
-        tokio::spawn(async move {
-            let _permit = self.permits().acquire_owned().await.unwrap();
+        tokio::spawn(
+            async move {
+                let _permit = self.permits().acquire_owned().await.unwrap();
 
-            tracing::debug!(
-                "Acquired permit to generate, {} permits left",
-                self.permits().available_permits()
-            );
+                tracing::debug!(
+                    "Acquired permit to generate, {} permits left",
+                    self.permits().available_permits()
+                );
 
-            // Prepend so it kind of looks like a valid website
-            let mut bytes_written = 0_usize;
+                // Prepend so it kind of looks like a valid website
+                let mut bytes_written = 0_usize;
 
-            // For the first value we want to prepend something to make it look like HTML.
-            // We don't want to just chain it, because then the first chunk of the body always
-            // looks the same.
-            let mut first_msg = BytesMut::from(FIRST_MSG_PREFIX);
-            first_msg.extend(self.next().expect("next returned None"));
-            let first_msg_size = first_msg.len();
-            let start_time = time::SystemTime::now();
-            if tx.send(first_msg.freeze()).await.is_ok() {
-                bytes_written += first_msg_size;
-            } else {
-                tracing::info!("Stream broken before first message could be sent");
-                return;
-            };
-
-            // Don't want to call `self.config()` over and over
-            let time_limit = self.config().time_limit;
-            let time_limit_duration = Duration::from_secs(time_limit);
-            let size_limit = self.config().size_limit;
-            loop {
-                // `0` means no limit
-
-                // If system time is messed up, assume no time has passed
-                if time_limit != 0
-                    && (start_time.elapsed().unwrap_or(Duration::from_secs(0))
-                        > time_limit_duration)
-                {
-                    tracing::info!("Time limit was reached ({} s), breaking stream", time_limit,);
-                    return;
-                }
-
-                if size_limit != 0 && bytes_written >= size_limit {
-                    tracing::info!(
-                        "Size limit was reached ({:.2} MB, {:.2} GB)",
-                        (bytes_written as f64) * 1e-6,
-                        (bytes_written as f64) * 1e-9
-                    );
-                    return;
-                }
-
-                // Limits were find, produce some data
-                let s = self.next().expect("next returned None");
-
-                // The size may be dynamic if the generator does not have a strict
-                // chunk size
-                let s_size = s.len();
-                if tx.send(s).await.is_ok() {
-                    bytes_written += s_size;
+                // For the first value we want to prepend something to make it look like HTML.
+                // We don't want to just chain it, because then the first chunk of the body always
+                // looks the same.
+                let mut first_msg = BytesMut::from(FIRST_MSG_PREFIX);
+                first_msg.extend(self.next().expect("next returned None"));
+                let first_msg_size = first_msg.len();
+                let start_time = time::SystemTime::now();
+                if tx.send(first_msg.freeze()).await.is_ok() {
+                    bytes_written += first_msg_size;
                 } else {
-                    // TODO: Add metadata
-                    tracing::info!(
-                        "Stream broken, wrote {:.2} MB, or {:.2} GB",
-                        (bytes_written as f64) * 1e-6,
-                        (bytes_written as f64) * 1e-9
-                    );
-                    break;
+                    tracing::info!("Stream broken before first message could be sent");
+                    return;
                 };
+
+                // Don't want to call `self.config()` over and over
+                let time_limit = self.config().time_limit;
+                let time_limit_duration = Duration::from_secs(time_limit);
+                let size_limit = self.config().size_limit;
+                loop {
+                    // `0` means no limit
+
+                    // If system time is messed up, assume no time has passed
+                    if time_limit != 0
+                        && (start_time.elapsed().unwrap_or(Duration::from_secs(0))
+                            > time_limit_duration)
+                    {
+                        tracing::info!(
+                            "Time limit was reached ({} s), breaking stream",
+                            time_limit,
+                        );
+                        return;
+                    }
+
+                    if size_limit != 0 && bytes_written >= size_limit {
+                        tracing::info!(
+                            "Size limit was reached ({:.2} MB, {:.2} GB)",
+                            (bytes_written as f64) * 1e-6,
+                            (bytes_written as f64) * 1e-9
+                        );
+                        return;
+                    }
+
+                    // Limits were find, produce some data
+                    let s = self.next().expect("next returned None");
+
+                    // The size may be dynamic if the generator does not have a strict
+                    // chunk size
+                    let s_size = s.len();
+                    if tx.send(s).await.is_ok() {
+                        bytes_written += s_size;
+                    } else {
+                        // TODO: Add metadata
+                        tracing::info!(
+                            "Stream broken, wrote {:.2} MB, or {:.2} GB",
+                            (bytes_written as f64) * 1e-6,
+                            (bytes_written as f64) * 1e-9
+                        );
+                        break;
+                    };
+                }
             }
-        });
+            .instrument(Span::current()), // Ensure logging is made with request details
+        );
 
         rx
     }

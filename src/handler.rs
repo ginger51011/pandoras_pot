@@ -15,7 +15,7 @@ impl RequestHandler {
 }
 
 impl tower_http::trace::OnRequest<Body> for RequestHandler {
-    fn on_request(&mut self, request: &Request<Body>, _: &Span) {
+    fn on_request(&mut self, request: &Request<Body>, current_span: &Span) {
         let headers = request.headers();
 
         // We try to find the IP, we are probably behind a reverse proxy, so try common ones.
@@ -36,11 +36,12 @@ impl tower_http::trace::OnRequest<Body> for RequestHandler {
             }
         }
 
-        let client_ip = client_ip.map_or("unknown", |ip| ip.to_str().unwrap_or("unknown"));
+        let proxied_ip = client_ip.map_or("unknown", |ip| ip.to_str().unwrap_or("unknown"));
 
+        current_span.record("proxied_ip", proxied_ip);
         tracing::info!(
             "Hostile proxied IP '{}' connected to URI '{}'",
-            client_ip,
+            proxied_ip,
             request.uri()
         );
     }
