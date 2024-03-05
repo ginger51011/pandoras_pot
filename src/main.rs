@@ -107,7 +107,6 @@ fn create_app(config: &Config) -> Result<Router, i32> {
         .or(MethodFilter::PUT)
         .or(MethodFilter::TRACE);
 
-    // We add a span to the handler, so each request will have its logged described
     let handler = move || text_stream(gen);
     if config.http.catch_all {
         // Since we have no other routes now, all will be passed to the fallback
