@@ -110,13 +110,16 @@ docker build -t pandoras_pot . # You can add --build-arg CONFIG=<...> here
 docker run --name=pandoras_pot --restart=always -p 6669:8080 -d pandoras_pot
 ```
 
-## systemd Service
+## `systemd` Service
 
 You can also easily set up a `systemd` service. This requires you to
-[install~Rust](https://www.rust-lang.org/tools/install), but requires one less
+[install Rust](https://www.rust-lang.org/tools/install), but requires one less
 bloated docker image and makes reloading configurations easier. In this example
 I will set up a new user, `pandora-user`, but you can use any user you want
 (but we will lock `pandora-user` down).
+
+_Note: With the exception of cloning and building pandoras_pot, most commands here
+will require root._
 
 Start by cloning the repo and building `pandoras_pot` (after installing Rust):
 
@@ -145,6 +148,9 @@ mkdir /etc/pandoras_pot
 # Ensure the config file exists; you can copy the default one in this README
 # into this file
 touch /etc/pandoras_pot/config.toml
+
+# Optionally you can create your data file here. You need to point to it from
+# the config.
 
 # Make pandora-user the owner of this dir
 chown -R pandora-user:pandora-user /etc/pandoras_pot
