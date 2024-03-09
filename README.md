@@ -110,6 +110,95 @@ docker build -t pandoras_pot . # You can add --build-arg CONFIG=<...> here
 docker run --name=pandoras_pot --restart=always -p 6669:8080 -d pandoras_pot
 ```
 
+## `systemd` Service
+
+You can also easily set up a `systemd` service. This requires you to
+[install Rust](https://www.rust-lang.org/tools/install), but requires one less
+bloated docker image and makes reloading configurations easier. In this example
+I will set up a new user, `pandora-user`, but you can use any user you want
+(but we will lock `pandora-user` down).
+
+_Note: With the exception of cloning and building pandoras_pot, most commands here
+will require root._
+
+Start by cloning the repo and building `pandoras_pot` (after installing Rust):
+
+```sh
+git clone git@github.com:ginger51011/pandoras_pot.git
+cd pandoras_pot
+cargo build --release
+
+# Move the binary to a better place
+cp ./target/release/pandoras_pot /usr/bin/
+```
+
+We then create the user that will run the process; this user won't be root and
+cannot even login:
+
+```sh
+adduser --disabled-password --gecos '' --shell /sbin/nologin --no-create-home --home /iamadirandidontexist 'pandora-user'
+```
+
+Then we create a directory to keep our configuration (and also things like the
+`data` file for some generators):
+
+```sh
+mkdir /etc/pandoras_pot
+
+# Ensure the config file exists; you can copy the default one in this README
+# into this file
+touch /etc/pandoras_pot/config.toml
+
+# Optionally you can create your data file here. You need to point to it from
+# the config.
+
+# Make pandora-user the owner of this dir
+chown -R pandora-user:pandora-user /etc/pandoras_pot
+```
+
+Now we create the actual service. If you have used the examples here, you can
+just copy-paste this into a new file at `/etc/systemd/system/pandorad.service`:
+
+```
+[Unit]
+Description=Pandora's Pot "service"
+After=network.target
+StartLimitIntervalSec=0
+
+[Service]
+# Change to another user/group if needed
+User=pandora-user
+Group=pandora-user
+
+Restart=always
+RestartSec=1
+
+WorkingDirectory=/etc/pandoras_pot/
+
+# Requires that the file /etc/pandoras_pot/config.toml exists; you can also
+# remove config.toml to use plain default settings.
+ExecStart=/usr/bin/pandoras_pot config.toml
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Then you need to reload some daemons, enable and start your service:
+
+```sh
+sytemctl daemon-reload
+systemctl enable pandorad.service
+systemctl start pandorad.service
+```
+
+You can check if everything looks good:
+
+```sh
+systemctl status pandorad.service
+```
+
+Done!
+
 ## Configuration
 
 `pandoras_pot` uses toml as a configuration format. If you are not using docker,
