@@ -186,7 +186,7 @@ WantedBy=multi-user.target
 Then you need to reload some daemons, enable and start your service:
 
 ```sh
-sytemctl daemon-reload
+systemctl daemon-reload
 systemctl enable pandorad.service
 systemctl start pandorad.service
 ```
@@ -295,7 +295,7 @@ write for fun useful, please consider donating to an efficient charity that
 save or improve lives the most per `$CURRENCY`.
 
 [GiveWell.org](https://givewell.org) is an excellent website that can help you
-donate to the worlds most efficient charities. Alternatives listing the current
+donate to the world's most efficient charities. Alternatives listing the current
 best charities for helping our planet is [Founders Pledge](https://www.founderspledge.com/funds/climate-change-fund), and for
 animal welfare [Animal Charity Evaluators](https://animalcharityevaluators.org/donation-advice/recommended-charity-fund/).
 
