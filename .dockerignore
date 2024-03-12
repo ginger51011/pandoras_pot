@@ -1,0 +1,7 @@
+target
+
+*.log
+
+# Profiling
+perf.data*
+flamegraph.svg
