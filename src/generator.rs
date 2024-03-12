@@ -14,7 +14,7 @@ use crate::config::GeneratorConfig;
 use bytes::{Bytes, BytesMut};
 use futures::Stream;
 use tokio::sync::{mpsc::Receiver, Semaphore};
-use tracing::{Instrument, Span};
+use tracing::Instrument;
 
 use self::{
     markov_generator::MarkovChainGenerator, random_generator::RandomGenerator,
@@ -131,7 +131,7 @@ where
                     };
                 }
             }
-            .instrument(Span::current()), // Ensure logging is made with request details
+            .in_current_span(), // Ensure logging is made with request details
         );
 
         rx
