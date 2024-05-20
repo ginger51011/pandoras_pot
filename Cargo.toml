@@ -28,7 +28,7 @@ tower-http = { version = "0.5", default-features = false, features = ["trace"] }
 axum = { version = "0.7", default-features = false, features = ["http1", "http2", "matched-path", "original-uri", "tokio", "tower-log", "tracing"]}
 futures = "0.3.30"
 serde = { version = "1.0", features = [ "derive" ]}
-toml = "0.8.12"
+toml = "0.8.13"
 home = "0.5.9"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["json"]}
