@@ -21,7 +21,7 @@ use self::{
     static_generator::StaticGenerator,
 };
 
-/// Size of wrapping a string in a "<p>\n{<yourstring>}\n</p>\n".
+/// Size of wrapping a string in a "<p>\n{yourstring}\n</p>\n".
 /// `generator.chunk_size` must be larger than this.
 pub(crate) const P_TAG_SIZE: usize = 10;
 

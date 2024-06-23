@@ -20,3 +20,9 @@ jobs:
       run: cargo build --verbose
     - name: Run tests
       run: cargo test --verbose
+    - name: Clippy check
+      run: cargo clippy --no-deps -- --deny warnings
+    - name: Rustdoc checks
+      run: cargo doc --no-deps
+      env:
+        RUSTDOCFLAGS: "--deny warnings"
