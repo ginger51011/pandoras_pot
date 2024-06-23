@@ -181,6 +181,41 @@ WorkingDirectory=/etc/pandoras_pot/
 # remove config.toml to use plain default settings.
 ExecStart=/usr/bin/pandoras_pot config.toml
 
+###
+## Hardening; this is optional and can be commented out, but is generally
+## good practice. Some might prevent pandoras_pot from functioning, see below.
+##
+## Other settings may exist and be suitable.
+##
+## For more info, see systemd.exec(5)
+##
+MemoryDenyWriteExecute=yes
+NoNewPrivileges=yes
+PrivateDevices=yes
+PrivateTmp=yes
+PrivateUsers=yes
+ProtectClock=yes
+ProtectControlGroups=yes
+ProtectHostname=yes
+ProtectKernelLogs=yes
+ProtectKernelModules=yes
+ProtectKernelTunables=yes
+RestrictNamespaces=yes
+RestrictSUIDSGID=yes
+
+# These might prevent pandoras_pot from writing to a log file if ReadWritePaths is misconfigured.
+ProtectHome=yes
+ProtectSystem=strict
+
+# This should point to the output log file; this is the default value.
+# It should be the same as `logging.output_path` in the config.toml.
+# A sane alternative is `/var/log/pandoras.log`.
+ReadWritePaths=/etc/pandoras_pot/pandoras.log
+
+##
+## End of hardening
+###
+
 [Install]
 WantedBy=multi-user.target
 ```
