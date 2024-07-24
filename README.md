@@ -8,7 +8,7 @@
 [![GitHub Repo](https://img.shields.io/badge/GitHub-ginger51011%2Fpandoras__pot-FFA400?style=flat&logo=github)](https://github.com/ginger51011/pandoras_pot)
 [![Crates.io (pandoras_pot)](https://img.shields.io/crates/v/pandoras_pot)](https://crates.io/crates/pandoras_pot)
 [![GitHub License](https://img.shields.io/github/license/ginger51011/pandoras_pot)](https://github.com/ginger51011/pandoras_pot/blob/main/LICENSE)
-[![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/ginger51011/pandoras_pot/rust.yml)](https://github.com/ginger51011/pandoras_pot/actions/)
+[![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/ginger51011/pandoras_pot/ci.yml)](https://github.com/ginger51011/pandoras_pot/actions/)
 </div>
 
 # Summary
