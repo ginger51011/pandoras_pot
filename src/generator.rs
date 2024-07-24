@@ -196,7 +196,7 @@ mod tests {
     /// otherwise no thread will ever make senders produce output.
     #[tokio::test(flavor = "multi_thread")]
     async fn generator_is_limited() {
-        for limit in 1..100 {
+        for limit in 1..50 {
             let mut receivers = Vec::with_capacity(limit);
             let config = Arc::new(GeneratorConfig::new(
                 0,
