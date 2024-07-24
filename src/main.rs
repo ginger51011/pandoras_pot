@@ -13,7 +13,7 @@ use axum::{
     BoxError, Router,
 };
 use config::Config;
-use generator::{random_generator::RandomGenerator, Generator, GeneratorContainer};
+use generator::{random_strategy::Random, Generator, GeneratorContainer};
 use std::{fs, path::PathBuf, process::exit, time::Duration};
 use stream_body::StreamBody;
 use tokio::net::TcpListener;
@@ -24,9 +24,7 @@ use tracing_subscriber::prelude::*;
 
 use crate::{
     config::GeneratorType,
-    generator::{
-        markov_generator::MarkovChainGenerator, static_generator::StaticGenerator, P_TAG_SIZE,
-    },
+    generator::{markov_strategy::MarkovChain, static_strategy::Static, P_TAG_SIZE},
     handler::RequestHandler,
 };
 
@@ -88,13 +86,13 @@ fn create_app(config: &Config) -> Result<Router, i32> {
     tracing::info!("Using generator: {}", config.generator.generator_type);
     let gen = match config.generator.generator_type {
         GeneratorType::Random => {
-            GeneratorContainer::Random(RandomGenerator::from_config(config.generator.clone()))
+            GeneratorContainer::Random(Random::from_config(config.generator.clone()))
         }
-        GeneratorType::MarkovChain(_) => GeneratorContainer::MarkovChain(
-            MarkovChainGenerator::from_config(config.generator.clone()),
-        ),
+        GeneratorType::MarkovChain(_) => {
+            GeneratorContainer::MarkovChain(MarkovChain::from_config(config.generator.clone()))
+        }
         GeneratorType::Static(_) => {
-            GeneratorContainer::Static(StaticGenerator::from_config(config.generator.clone()))
+            GeneratorContainer::Static(Static::from_config(config.generator.clone()))
         }
     };
 
