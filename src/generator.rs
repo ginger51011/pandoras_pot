@@ -14,7 +14,7 @@ use std::{
 use crate::config::GeneratorConfig;
 use bytes::{Bytes, BytesMut};
 use futures::Stream;
-use tokio::sync::{mpsc::Receiver, Semaphore};
+use tokio::sync::{mpsc, Semaphore};
 use tracing::Instrument;
 
 use self::{markov_strategy::MarkovChain, random_strategy::Random, static_strategy::Static};
@@ -48,7 +48,7 @@ pub trait GeneratorStrategy {
     ///
     /// Implementors can, but do not have to, think about HTML. Note that the first message
     /// will be prefixed with [`HTML_PREFIX`].
-    fn start(self, buffer_size: usize) -> Receiver<Bytes>;
+    fn start(self, buffer_size: usize) -> mpsc::Receiver<Bytes>;
 }
 
 /// Trait that describes a generator that can be converted to a stream, outputting infinite amounts
@@ -73,7 +73,7 @@ impl Generator {
 
     /// Returns an infinite stream using this generator strategy, prepending [`HTML_PREFIX`] to the
     /// first chunk.
-    fn into_receiver<T>(self, strategy: T) -> Receiver<Bytes>
+    fn into_receiver<T>(self, strategy: T) -> mpsc::Receiver<Bytes>
     where
         T: GeneratorStrategy + Send + 'static,
     {
