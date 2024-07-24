@@ -9,7 +9,7 @@ use crate::error_code;
 
 use super::GeneratorStrategy;
 
-/// A generator that always returns the same string.
+/// A generator strategy that always returns the same string.
 #[derive(Clone, Debug)]
 pub(crate) struct Static {
     data: Bytes,
@@ -29,7 +29,7 @@ impl Static {
 
 impl GeneratorStrategy for Static {
     #[instrument(name = "spawn_static", skip(self))]
-    fn spawn(self, buffer_size: usize) -> mpsc::Receiver<Bytes> {
+    fn start(self, buffer_size: usize) -> mpsc::Receiver<Bytes> {
         let (tx, rx) = mpsc::channel(buffer_size);
         let span = tracing::Span::current();
         tokio::task::spawn_blocking(move || {

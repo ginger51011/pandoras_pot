@@ -12,8 +12,6 @@ use axum::{
     routing::{get, on, MethodFilter},
     BoxError, Router,
 };
-use config::Config;
-use generator::{random_strategy::Random, Generator, GeneratorStrategyContainer};
 use std::{fs, path::PathBuf, process::exit, sync::Arc, time::Duration};
 use stream_body::StreamBody;
 use tokio::net::TcpListener;
@@ -21,6 +19,9 @@ use tower::{buffer::BufferLayer, limit::RateLimitLayer, ServiceBuilder};
 use tower_http::trace::MakeSpan;
 use tracing::info_span;
 use tracing_subscriber::prelude::*;
+
+use config::Config;
+use generator::{random_strategy::Random, Generator, GeneratorStrategyContainer};
 
 use crate::{
     config::GeneratorType,
@@ -287,7 +288,7 @@ mod tests {
     use crate::{
         config::{Config, GeneratorType},
         create_app, error_code,
-        generator::{FIRST_MSG_PREFIX, P_TAG_SIZE},
+        generator::{HTML_PREFIX, P_TAG_SIZE},
     };
 
     /// Tests if an app responds with what seems like an infinite stream on
@@ -418,7 +419,7 @@ mod tests {
 
         // First one should contain tags as well
         let first = body.next().await.unwrap().unwrap();
-        assert_eq!(first, format!("{FIRST_MSG_PREFIX}{msg}"));
+        assert_eq!(first, format!("{HTML_PREFIX}{msg}"));
 
         // All the following should be our very useful message
         for _ in 0..1000 {

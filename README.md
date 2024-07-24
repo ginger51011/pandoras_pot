@@ -300,6 +300,10 @@ time_limit = 0
 # send before it stops sending. `0` means no limit.
 size_limit = 0
 
+# How many chunks should be buffered for each connection. Higher values mean
+# more memory usage, but may lead to increased performance.
+chunk_buffer = 20
+
 [logging]
 # Output file for logs.
 output_path = "pandoras.log"

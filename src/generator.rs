@@ -1,4 +1,5 @@
-//! This module contains structures to create a generator used for data creation.
+//! This module contains structures to create a generator used for data creation using different
+//! strategies.
 
 pub(crate) mod markov_strategy;
 pub(crate) mod random_strategy;
@@ -24,7 +25,7 @@ pub(crate) const P_TAG_SIZE: usize = 10;
 
 /// Prefix to be added to the first sent generated message to make it look like
 /// a very real and legit HTML page.
-pub const FIRST_MSG_PREFIX: &str = "<!DOCTYPE html><html><body>";
+pub const HTML_PREFIX: &str = "<!DOCTYPE html><html><body>";
 
 /// Container for generators
 #[derive(Clone, Debug)]
@@ -34,13 +35,24 @@ pub(crate) enum GeneratorStrategyContainer {
     Static(Static),
 }
 
+/// A strategy for genering helpful data for web crawlers.
+///
+/// Implementors should be _very_ cheap to clone, since [`GeneratorStrategy::start`] must take
+/// ownership. This is to allow a strategy to only spawn a limited number of messages, or specific
+/// messages in order in their [`GeneratorStrategy::start`] implementation.
 pub trait GeneratorStrategy {
-    /// TODO: Describe why clones should be cheap for these, since spawn take self
-    fn spawn(self, buffer_size: usize) -> Receiver<Bytes>;
+    /// Start generating using this strategy.
+    ///
+    /// This would generally mean spawning a [`mpsc::Sender`] with capacity `buffer_size`, and then
+    /// passing that to a _blocking_ tokio task generating data.
+    ///
+    /// Implementors can, but do not have to, think about HTML. Note that the first message
+    /// will be prefixed with [`HTML_PREFIX`].
+    fn start(self, buffer_size: usize) -> Receiver<Bytes>;
 }
 
-/// Trait that describes a generator that can be converted to a stream,
-/// outputting infinite amounts of very useful strings.
+/// Trait that describes a generator that can be converted to a stream, outputting infinite amounts
+/// of very useful strings using a provided strategy.
 ///
 /// Cheap to clone, as internals are wrapped in [`Arc`]. Does _not_ need to be wrapped in another
 /// one.
@@ -59,7 +71,7 @@ impl Generator {
         self.permits.clone()
     }
 
-    /// Returns an infinite stream using this generator, prepending `<html><body>\n` to the
+    /// Returns an infinite stream using this generator strategy, prepending [`HTML_PREFIX`] to the
     /// first chunk.
     fn into_receiver<T>(self, strategy: T) -> Receiver<Bytes>
     where
@@ -75,7 +87,7 @@ impl Generator {
                 );
 
                 // To provide accurate stats, the buffer must be 1
-                let mut gen = strategy.spawn(self.config.chunk_buffer);
+                let mut gen = strategy.start(self.config.chunk_buffer);
 
                 // Prepend so it kind of looks like a valid website
                 let mut bytes_written = 0_usize;
@@ -83,7 +95,7 @@ impl Generator {
                 // For the first value we want to prepend something to make it look like HTML.
                 // We don't want to just chain it, because then the first chunk of the body always
                 // looks the same.
-                let mut first_msg = BytesMut::from(FIRST_MSG_PREFIX);
+                let mut first_msg = BytesMut::from(HTML_PREFIX);
                 if let Some(first_gen) = gen.recv().await {
                     first_msg.extend(first_gen);
                 } else {
@@ -176,7 +188,7 @@ mod tests {
 
     /// The duration the sender to a [`Generator::into_receiver()`] is absolutely
     /// guaranteed to have acquired a permit and sent its first message.
-    const SENDER_WARMUP_DURATION: Duration = Duration::from_millis(50);
+    const SENDER_WARMUP_DURATION: Duration = Duration::from_millis(100);
 
     /// Verifies that the generator is limited to a specified amount of concurrent streams.
     ///

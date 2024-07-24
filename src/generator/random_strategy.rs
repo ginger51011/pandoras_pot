@@ -10,6 +10,7 @@ use tracing::instrument;
 
 use super::{GeneratorStrategy, P_TAG_SIZE};
 
+/// Generates `chunk_size` of completely random text.
 #[derive(Clone, Debug)]
 pub(crate) struct Random {
     chunk_size: usize,
@@ -23,7 +24,7 @@ impl Random {
 
 impl GeneratorStrategy for Random {
     #[instrument(name = "spawn_random", skip(self))]
-    fn spawn(self, buffer_size: usize) -> mpsc::Receiver<Bytes> {
+    fn start(self, buffer_size: usize) -> mpsc::Receiver<Bytes> {
         let (tx, rx) = mpsc::channel(buffer_size);
         let span = tracing::Span::current();
         tokio::task::spawn_blocking(move || {

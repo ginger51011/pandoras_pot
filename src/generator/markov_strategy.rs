@@ -10,9 +10,8 @@ use crate::error_code;
 
 use super::{GeneratorStrategy, P_TAG_SIZE};
 
-/// A generator using Markov chains to generate text. Due to the nature of
-/// markov chains, each new generated piece of string may not exactly be
-/// `chunk_size`, and might be a bit larger.
+/// A generator strategy using Markov chains to generate text. Due to the nature of markov chains,
+/// each new generated piece of string may not exactly be `chunk_size`, and might be a bit larger.
 #[derive(Clone, Debug)]
 pub(crate) struct MarkovChain {
     /// Chain used to generate responses
@@ -42,7 +41,7 @@ impl MarkovChain {
 
 impl GeneratorStrategy for MarkovChain {
     #[instrument(name = "spawn_markov_chain", skip(self))]
-    fn spawn(self, buffer_size: usize) -> mpsc::Receiver<Bytes> {
+    fn start(self, buffer_size: usize) -> mpsc::Receiver<Bytes> {
         let (tx, rx) = mpsc::channel(buffer_size);
         let span = tracing::Span::current();
         tokio::task::spawn_blocking(move || {
