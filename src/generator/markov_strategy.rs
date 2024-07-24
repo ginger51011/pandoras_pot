@@ -47,10 +47,10 @@ impl GeneratorStrategy for MarkovChain {
         tokio::task::spawn_blocking(move || {
             let _entered = span.enter();
             let desired_size = self.chunk_size - P_TAG_SIZE;
+            let mut smol_rng = SmallRng::from_entropy();
 
             loop {
                 let mut result = String::with_capacity(desired_size + 100);
-                let mut smol_rng = SmallRng::from_entropy();
                 'outer: while result.as_bytes().len() < desired_size {
                     // We don't want to check result size every time, but we cannot know
                     // how large a token is. But most of them are (probably English) words,
