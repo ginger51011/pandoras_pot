@@ -12,9 +12,7 @@ use axum::{
     routing::{get, on, MethodFilter},
     BoxError, Router,
 };
-use config::Config;
-use generator::{random_generator::RandomGenerator, Generator, GeneratorContainer};
-use std::{fs, path::PathBuf, process::exit, time::Duration};
+use std::{fs, path::PathBuf, process::exit, sync::Arc, time::Duration};
 use stream_body::StreamBody;
 use tokio::net::TcpListener;
 use tower::{buffer::BufferLayer, limit::RateLimitLayer, ServiceBuilder};
@@ -22,13 +20,23 @@ use tower_http::trace::MakeSpan;
 use tracing::info_span;
 use tracing_subscriber::prelude::*;
 
+use config::Config;
+use generator::{random_strategy::Random, Generator, GeneratorStrategyContainer};
+
 use crate::{
     config::GeneratorType,
-    generator::{
-        markov_generator::MarkovChainGenerator, static_generator::StaticGenerator, P_TAG_SIZE,
-    },
+    generator::{markov_strategy::MarkovChain, static_strategy::Static, P_TAG_SIZE},
     handler::RequestHandler,
 };
+
+const ANY_METHOD: MethodFilter = MethodFilter::DELETE
+    .or(MethodFilter::GET)
+    .or(MethodFilter::HEAD) // TODO: Acutally transmit an infinite header
+    .or(MethodFilter::OPTIONS)
+    .or(MethodFilter::PATCH)
+    .or(MethodFilter::POST)
+    .or(MethodFilter::PUT)
+    .or(MethodFilter::TRACE);
 
 /// Used to provide a span that will hold metadata about a connection, so it can be tracked.
 #[derive(Clone, Debug)]
@@ -55,17 +63,24 @@ impl<B> MakeSpan<B> for PandoraRequestSpan {
     }
 }
 
-async fn text_stream(gen: GeneratorContainer) -> impl IntoResponse {
+async fn text_stream(
+    gen: Generator,
+    gen_strategy: GeneratorStrategyContainer,
+) -> impl IntoResponse {
     // Set some headers to trick le bots
     let mut headers = HeaderMap::new();
     headers.insert(CONTENT_TYPE, "text/html; charset=utf-8".parse().unwrap());
 
-    match gen {
-        GeneratorContainer::Random(g) => StreamBody::from_stream(g.into_stream()).headers(headers),
-        GeneratorContainer::MarkovChain(g) => {
-            StreamBody::from_stream(g.into_stream()).headers(headers)
+    match gen_strategy {
+        GeneratorStrategyContainer::Random(g) => {
+            StreamBody::from_stream(gen.into_stream(g)).headers(headers)
         }
-        GeneratorContainer::Static(g) => StreamBody::from_stream(g.into_stream()).headers(headers),
+        GeneratorStrategyContainer::MarkovChain(g) => {
+            StreamBody::from_stream(gen.into_stream(g)).headers(headers)
+        }
+        GeneratorStrategyContainer::Static(g) => {
+            StreamBody::from_stream(gen.into_stream(g)).headers(headers)
+        }
     }
 }
 
@@ -82,32 +97,22 @@ fn create_app(config: &Config) -> Result<Router, i32> {
         return Err(error_code::GENERATOR_CHUNK_SIZE_TOO_SMALL);
     }
 
-    let mut app = Router::new();
-
     // Create gen depending on config
     tracing::info!("Using generator: {}", config.generator.generator_type);
-    let gen = match config.generator.generator_type {
+    let gen_strategy = match &config.generator.generator_type {
         GeneratorType::Random => {
-            GeneratorContainer::Random(RandomGenerator::from_config(config.generator.clone()))
+            GeneratorStrategyContainer::Random(Random::new(config.generator.chunk_size))
         }
-        GeneratorType::MarkovChain(_) => GeneratorContainer::MarkovChain(
-            MarkovChainGenerator::from_config(config.generator.clone()),
+        GeneratorType::MarkovChain(input) => GeneratorStrategyContainer::MarkovChain(
+            MarkovChain::new(config.generator.chunk_size, input),
         ),
-        GeneratorType::Static(_) => {
-            GeneratorContainer::Static(StaticGenerator::from_config(config.generator.clone()))
-        }
+        GeneratorType::Static(input) => GeneratorStrategyContainer::Static(Static::new(input)),
     };
+    let generator_confg = Arc::new(config.generator.clone());
+    let generator = Generator::from_config(generator_confg);
+    let handler = move || text_stream(generator, gen_strategy);
 
-    const ANY_METHOD: MethodFilter = MethodFilter::DELETE
-        .or(MethodFilter::GET)
-        .or(MethodFilter::HEAD) // TODO: Acutally transmit an infinite header
-        .or(MethodFilter::OPTIONS)
-        .or(MethodFilter::PATCH)
-        .or(MethodFilter::POST)
-        .or(MethodFilter::PUT)
-        .or(MethodFilter::TRACE);
-
-    let handler = move || text_stream(gen);
+    let mut app = Router::new();
     if config.http.catch_all {
         // Since we have no other routes now, all will be passed to the fallback
         app = app.fallback(on(ANY_METHOD, handler));
@@ -283,7 +288,7 @@ mod tests {
     use crate::{
         config::{Config, GeneratorType},
         create_app, error_code,
-        generator::{FIRST_MSG_PREFIX, P_TAG_SIZE},
+        generator::{HTML_PREFIX, P_TAG_SIZE},
     };
 
     /// Tests if an app responds with what seems like an infinite stream on
@@ -414,7 +419,7 @@ mod tests {
 
         // First one should contain tags as well
         let first = body.next().await.unwrap().unwrap();
-        assert_eq!(first, format!("{FIRST_MSG_PREFIX}{msg}"));
+        assert_eq!(first, format!("{HTML_PREFIX}{msg}"));
 
         // All the following should be our very useful message
         for _ in 0..1000 {

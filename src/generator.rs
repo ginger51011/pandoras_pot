@@ -1,8 +1,9 @@
-//! This module contains structures to create a generator used for data creation.
+//! This module contains structures to create a generator used for data creation using different
+//! strategies.
 
-pub(crate) mod markov_generator;
-pub(crate) mod random_generator;
-pub(crate) mod static_generator;
+pub(crate) mod markov_strategy;
+pub(crate) mod random_strategy;
+pub(crate) mod static_strategy;
 
 use std::{
     fmt::Debug,
@@ -13,13 +14,10 @@ use std::{
 use crate::config::GeneratorConfig;
 use bytes::{Bytes, BytesMut};
 use futures::Stream;
-use tokio::sync::{mpsc::Receiver, Semaphore};
+use tokio::sync::{mpsc, Semaphore};
 use tracing::Instrument;
 
-use self::{
-    markov_generator::MarkovChainGenerator, random_generator::RandomGenerator,
-    static_generator::StaticGenerator,
-};
+use self::{markov_strategy::MarkovChain, random_strategy::Random, static_strategy::Static};
 
 /// Size of wrapping a string in a "<p>\n{yourstring}\n</p>\n".
 /// `generator.chunk_size` must be larger than this.
@@ -27,45 +25,69 @@ pub(crate) const P_TAG_SIZE: usize = 10;
 
 /// Prefix to be added to the first sent generated message to make it look like
 /// a very real and legit HTML page.
-pub const FIRST_MSG_PREFIX: &str = "<!DOCTYPE html><html><body>";
+pub const HTML_PREFIX: &str = "<!DOCTYPE html><html><body>";
 
 /// Container for generators
 #[derive(Clone, Debug)]
-pub(crate) enum GeneratorContainer {
-    Random(RandomGenerator),
-    MarkovChain(MarkovChainGenerator),
-    Static(StaticGenerator),
+pub(crate) enum GeneratorStrategyContainer {
+    Random(Random),
+    MarkovChain(MarkovChain),
+    Static(Static),
 }
 
-/// Trait that describes a generator that can be converted to a stream,
-/// outputting infinite amounts of very useful strings.
-pub trait Generator
-where
-    Self: Sync + Iterator<Item = Bytes> + Clone + Send + 'static + Debug,
-{
-    /// Creates the generator from a config.
-    fn from_config(config: GeneratorConfig) -> Self;
+/// A strategy for genering helpful data for web crawlers.
+///
+/// Implementors should be _very_ cheap to clone, since [`GeneratorStrategy::start`] must take
+/// ownership. This is to allow a strategy to only spawn a limited number of messages, or specific
+/// messages in order in their [`GeneratorStrategy::start`] implementation.
+pub trait GeneratorStrategy {
+    /// Start generating using this strategy.
+    ///
+    /// This would generally mean spawning a [`mpsc::Sender`] with capacity `buffer_size`, and then
+    /// passing that to a _blocking_ tokio task generating data.
+    ///
+    /// Implementors can, but do not have to, think about HTML. Note that the first message
+    /// will be prefixed with [`HTML_PREFIX`].
+    fn start(self, buffer_size: usize) -> mpsc::Receiver<Bytes>;
+}
 
-    /// Retrieve the config used for this generator.
-    fn config(&self) -> &GeneratorConfig;
+/// Trait that describes a generator that can be converted to a stream, outputting infinite amounts
+/// of very useful strings using a provided strategy.
+///
+/// Cheap to clone, as internals are wrapped in [`Arc`]. Does _not_ need to be wrapped in another
+/// one.
+#[derive(Debug, Clone)]
+pub struct Generator {
+    permits: Arc<Semaphore>,
+    config: Arc<GeneratorConfig>,
+}
+impl Generator {
+    pub fn from_config(config: Arc<GeneratorConfig>) -> Self {
+        let permits = Arc::new(Semaphore::new(config.max_concurrent()));
+        Self { permits, config }
+    }
 
-    /// Retrieves a semaphore used as a permit to start generating values.
-    fn permits(&self) -> Arc<Semaphore>;
+    fn permits(&self) -> Arc<Semaphore> {
+        self.permits.clone()
+    }
 
-    /// Returns an infinite stream using this generator, prepending `<html><body>\n` to the
+    /// Returns an infinite stream using this generator strategy, prepending [`HTML_PREFIX`] to the
     /// first chunk.
-    fn into_receiver(mut self) -> Receiver<Bytes> {
-        // To provide accurate stats, the buffer must be 1
+    fn into_receiver<T>(self, strategy: T) -> mpsc::Receiver<Bytes>
+    where
+        T: GeneratorStrategy + Send + 'static,
+    {
         let (tx, rx) = tokio::sync::mpsc::channel::<Bytes>(1);
-
         tokio::spawn(
             async move {
                 let _permit = self.permits().acquire_owned().await.unwrap();
-
                 tracing::debug!(
                     "Acquired permit to generate, {} permits left",
                     self.permits().available_permits()
                 );
+
+                // To provide accurate stats, the buffer must be 1
+                let mut gen = strategy.start(self.config.chunk_buffer);
 
                 // Prepend so it kind of looks like a valid website
                 let mut bytes_written = 0_usize;
@@ -73,8 +95,13 @@ where
                 // For the first value we want to prepend something to make it look like HTML.
                 // We don't want to just chain it, because then the first chunk of the body always
                 // looks the same.
-                let mut first_msg = BytesMut::from(FIRST_MSG_PREFIX);
-                first_msg.extend(self.next().expect("next returned None"));
+                let mut first_msg = BytesMut::from(HTML_PREFIX);
+                if let Some(first_gen) = gen.recv().await {
+                    first_msg.extend(first_gen);
+                } else {
+                    return;
+                }
+
                 let first_msg_size = first_msg.len();
                 let start_time = time::SystemTime::now();
                 if tx.send(first_msg.freeze()).await.is_ok() {
@@ -85,9 +112,9 @@ where
                 };
 
                 // Don't want to call `self.config()` over and over
-                let time_limit = self.config().time_limit;
+                let time_limit = self.config.time_limit;
                 let time_limit_duration = Duration::from_secs(time_limit);
-                let size_limit = self.config().size_limit;
+                let size_limit = self.config.size_limit;
                 loop {
                     // `0` means no limit
 
@@ -113,7 +140,11 @@ where
                     }
 
                     // Limits were find, produce some data
-                    let s = self.next().expect("next returned None");
+                    let s = if let Some(s) = gen.recv().await {
+                        s
+                    } else {
+                        return;
+                    };
 
                     // The size may be dynamic if the generator does not have a strict
                     // chunk size
@@ -121,7 +152,6 @@ where
                     if tx.send(s).await.is_ok() {
                         bytes_written += s_size;
                     } else {
-                        // TODO: Add metadata
                         tracing::info!(
                             "Stream broken, wrote {:.2} MB, or {:.2} GB",
                             (bytes_written as f64) * 1e-6,
@@ -137,64 +167,79 @@ where
         rx
     }
 
-    fn into_stream(self) -> impl Stream<Item = Bytes> {
-        tokio_stream::wrappers::ReceiverStream::new(self.into_receiver())
+    pub fn into_stream<T>(self, strategy: T) -> impl Stream<Item = Bytes>
+    where
+        T: GeneratorStrategy + Send + 'static,
+    {
+        tokio_stream::wrappers::ReceiverStream::new(self.into_receiver(strategy))
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use core::time::Duration;
-    use std::thread;
+    use core::{panic, time::Duration};
+    use std::sync::Arc;
 
     use tokio::sync::mpsc::error::TryRecvError;
 
-    use super::Generator;
+    use crate::config::{GeneratorConfig, GeneratorType};
+
+    use super::{random_strategy::Random, Generator};
 
     /// The duration the sender to a [`Generator::into_receiver()`] is absolutely
     /// guaranteed to have acquired a permit and sent its first message.
-    const SENDER_WARMUP_DURATION: Duration = Duration::from_millis(15);
+    const SENDER_WARMUP_DURATION: Duration = Duration::from_millis(100);
 
-    /// Verifies that a generator is limited to a specified amount of concurrent generators.
+    /// Verifies that the generator is limited to a specified amount of concurrent streams.
     ///
-    /// Tests calling this _must_ have the `#[tokio::test(flavor = "multi_threaded")]` annotation,
+    /// This _must_ have the `#[tokio::test(flavor = "multi_threaded")]` annotation,
     /// otherwise no thread will ever make senders produce output.
-    pub(crate) fn test_generator_is_limited(gen: impl Generator, limit: usize) -> bool {
-        let mut receivers = Vec::with_capacity(limit);
-        for _ in 0..limit {
-            let g = gen.clone();
-            let r = g.into_receiver();
-            receivers.push(r);
+    #[tokio::test(flavor = "multi_thread")]
+    async fn generator_is_limited() {
+        for limit in 1..50 {
+            let mut receivers = Vec::with_capacity(limit);
+            let config = Arc::new(GeneratorConfig::new(
+                0,
+                GeneratorType::Random,
+                limit,
+                0, // No limit
+                0, // No limit
+                1,
+            ));
+
+            let g = Generator::from_config(config);
+            for _ in 0..limit {
+                let r = g.clone().into_receiver(Random::default());
+                receivers.push(r);
+            }
+
+            tokio::time::sleep(SENDER_WARMUP_DURATION).await;
+
+            // Ensure all receivers have sent their first message
+            for r in &mut receivers {
+                let _ = r
+                    .try_recv()
+                    .expect(format!("Receiver within limit have not sent message").as_str());
+            }
+
+            // If we now attempt to use the original generator, it
+            // should be blocked (since we are still holding on to active
+            // receivers)
+            let mut r = g.into_receiver(Random::default());
+
+            // This should be instant, but we give it some time
+            tokio::time::sleep(SENDER_WARMUP_DURATION).await;
+
+            // We want this to be blocked
+            match r.try_recv() {
+                Ok(_) => panic!("should be blocked"),
+                Err(TryRecvError::Disconnected) => panic!("disconnected!"),
+                Err(TryRecvError::Empty) => {}
+            };
+
+            // So we can be completely sure that no generators
+            // were dropped until now
+            std::mem::drop(receivers);
         }
-
-        thread::sleep(SENDER_WARMUP_DURATION);
-
-        // Ensure all receivers have sent their first message
-        for r in &mut receivers {
-            let _ = r
-                .try_recv()
-                .expect(format!("Receiver within limit have not sent message").as_str());
-        }
-
-        // If we now attempt to use the original generator, it
-        // should be blocked (since we are still holding on to active
-        // receivers)
-        let mut r = gen.into_receiver();
-
-        // This should be instant, but we give it some time
-        thread::sleep(SENDER_WARMUP_DURATION);
-
-        // We want this to be blocked
-        let res = match r.try_recv() {
-            Ok(_) => false,
-            Err(TryRecvError::Disconnected) => false,
-            Err(TryRecvError::Empty) => true,
-        };
-
-        // So we can be completely sure that no generators
-        // were dropped until now
-        std::mem::drop(receivers);
-
-        res
     }
 }

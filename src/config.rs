@@ -144,6 +144,11 @@ pub(crate) struct GeneratorConfig {
     /// send before it stops sending. `0` means no limit.
     #[serde(default = "default_generator_size_limit")]
     pub size_limit: usize,
+
+    /// How many chunks should be buffered for each connection. Higher values mean more memory
+    /// usage, but may lead to increased performance.
+    #[serde(default = "default_generator_chunk_buffer")]
+    pub chunk_buffer: usize,
 }
 
 // While one could argue being able to pass strings in data as well is nicer, we quickly run into the
@@ -187,6 +192,7 @@ impl Default for GeneratorConfig {
             default_generator_max_concurrent(),
             default_generator_time_limit(),
             default_generator_size_limit(),
+            default_generator_chunk_buffer(),
         )
     }
 }
@@ -198,6 +204,7 @@ impl GeneratorConfig {
         max_concurrent: usize,
         time_limit: u64,
         size_limit: usize,
+        chunk_buffer: usize,
     ) -> Self {
         Self {
             chunk_size,
@@ -205,6 +212,7 @@ impl GeneratorConfig {
             max_concurrent,
             time_limit,
             size_limit,
+            chunk_buffer,
         }
     }
 
@@ -239,6 +247,10 @@ const fn default_generator_time_limit() -> u64 {
 
 const fn default_generator_size_limit() -> usize {
     0
+}
+
+const fn default_generator_chunk_buffer() -> usize {
+    20
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -359,6 +371,7 @@ mod tests {
 
             [generator]
             chunk_size = 1024
+            chunk_buffer = 100
             # The type of generator to be used
             type = { name = "random" }
 
