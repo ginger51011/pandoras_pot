@@ -32,7 +32,7 @@ impl GeneratorStrategy for Static {
     fn spawn(self, buffer_size: usize) -> mpsc::Receiver<Bytes> {
         let (tx, rx) = mpsc::channel(buffer_size);
         let span = tracing::Span::current();
-        tokio::task::spawn_blocking(move || loop {
+        tokio::task::spawn_blocking(move || {
             let _entered = span.enter();
             loop {
                 if tx.blocking_send(self.data.clone()).is_err() {
@@ -41,38 +41,5 @@ impl GeneratorStrategy for Static {
             }
         });
         rx
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use std::io::Write;
-
-    use tempfile::NamedTempFile;
-
-    use crate::{
-        config::{GeneratorConfig, GeneratorType},
-        generator::{static_strategy::Static, tests::test_generator_is_limited},
-    };
-
-    #[tokio::test(flavor = "multi_thread")]
-    async fn static_generator_limits() {
-        let mut tmpfile: NamedTempFile = tempfile::NamedTempFile::new().unwrap();
-        write!(tmpfile, "I am but a little chain. I do chain things.").unwrap();
-
-        for limit in 1..100 {
-            let gen_config = GeneratorConfig::new(
-                20,
-                GeneratorType::Static(tmpfile.path().to_path_buf()),
-                limit,
-                0,
-                0,
-            );
-            let gen = Static::new(0); // TODO
-            assert!(
-                test_generator_is_limited(gen, limit),
-                "last generator could produce output while blocked"
-            );
-        }
     }
 }

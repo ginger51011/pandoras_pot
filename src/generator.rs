@@ -61,19 +61,21 @@ impl Generator {
 
     /// Returns an infinite stream using this generator, prepending `<html><body>\n` to the
     /// first chunk.
-    fn into_receiver<T: GeneratorStrategy>(self, strategy: T) -> Receiver<Bytes> {
-        // To provide accurate stats, the buffer must be 1
+    fn into_receiver<T>(self, strategy: T) -> Receiver<Bytes>
+    where
+        T: GeneratorStrategy + Send + 'static,
+    {
         let (tx, rx) = tokio::sync::mpsc::channel::<Bytes>(1);
-        let mut gen = strategy.spawn(self.config.chunk_buffer);
-
         tokio::spawn(
             async move {
                 let _permit = self.permits().acquire_owned().await.unwrap();
-
                 tracing::debug!(
                     "Acquired permit to generate, {} permits left",
                     self.permits().available_permits()
                 );
+
+                // To provide accurate stats, the buffer must be 1
+                let mut gen = strategy.spawn(self.config.chunk_buffer);
 
                 // Prepend so it kind of looks like a valid website
                 let mut bytes_written = 0_usize;
@@ -82,7 +84,6 @@ impl Generator {
                 // We don't want to just chain it, because then the first chunk of the body always
                 // looks the same.
                 let mut first_msg = BytesMut::from(FIRST_MSG_PREFIX);
-                // TODO: Fix this
                 if let Some(first_gen) = gen.recv().await {
                     first_msg.extend(first_gen);
                 } else {
@@ -139,7 +140,6 @@ impl Generator {
                     if tx.send(s).await.is_ok() {
                         bytes_written += s_size;
                     } else {
-                        // TODO: Add metadata
                         tracing::info!(
                             "Stream broken, wrote {:.2} MB, or {:.2} GB",
                             (bytes_written as f64) * 1e-6,
@@ -155,64 +155,79 @@ impl Generator {
         rx
     }
 
-    pub fn into_stream<T: GeneratorStrategy>(self, strategy: T) -> impl Stream<Item = Bytes> {
+    pub fn into_stream<T>(self, strategy: T) -> impl Stream<Item = Bytes>
+    where
+        T: GeneratorStrategy + Send + 'static,
+    {
         tokio_stream::wrappers::ReceiverStream::new(self.into_receiver(strategy))
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use core::time::Duration;
-    use std::thread;
+    use core::{panic, time::Duration};
+    use std::sync::Arc;
 
     use tokio::sync::mpsc::error::TryRecvError;
 
-    use super::Generator;
+    use crate::config::{GeneratorConfig, GeneratorType};
+
+    use super::{random_strategy::Random, Generator};
 
     /// The duration the sender to a [`Generator::into_receiver()`] is absolutely
     /// guaranteed to have acquired a permit and sent its first message.
-    const SENDER_WARMUP_DURATION: Duration = Duration::from_millis(15);
+    const SENDER_WARMUP_DURATION: Duration = Duration::from_millis(50);
 
-    /// Verifies that a generator is limited to a specified amount of concurrent generators.
+    /// Verifies that the generator is limited to a specified amount of concurrent streams.
     ///
-    /// Tests calling this _must_ have the `#[tokio::test(flavor = "multi_threaded")]` annotation,
+    /// This _must_ have the `#[tokio::test(flavor = "multi_threaded")]` annotation,
     /// otherwise no thread will ever make senders produce output.
-    pub(crate) fn test_generator_is_limited(gen: Generator, limit: usize) -> bool {
-        let mut receivers = Vec::with_capacity(limit);
-        for _ in 0..limit {
-            let g = gen.clone();
-            let r = g.into_receiver();
-            receivers.push(r);
+    #[tokio::test(flavor = "multi_thread")]
+    async fn generator_is_limited() {
+        for limit in 1..100 {
+            let mut receivers = Vec::with_capacity(limit);
+            let config = Arc::new(GeneratorConfig::new(
+                0,
+                GeneratorType::Random,
+                limit,
+                0, // No limit
+                0, // No limit
+                1,
+            ));
+
+            let g = Generator::from_config(config);
+            for _ in 0..limit {
+                let r = g.clone().into_receiver(Random::default());
+                receivers.push(r);
+            }
+
+            tokio::time::sleep(SENDER_WARMUP_DURATION).await;
+
+            // Ensure all receivers have sent their first message
+            for r in &mut receivers {
+                let _ = r
+                    .try_recv()
+                    .expect(format!("Receiver within limit have not sent message").as_str());
+            }
+
+            // If we now attempt to use the original generator, it
+            // should be blocked (since we are still holding on to active
+            // receivers)
+            let mut r = g.into_receiver(Random::default());
+
+            // This should be instant, but we give it some time
+            tokio::time::sleep(SENDER_WARMUP_DURATION).await;
+
+            // We want this to be blocked
+            match r.try_recv() {
+                Ok(_) => panic!("should be blocked"),
+                Err(TryRecvError::Disconnected) => panic!("disconnected!"),
+                Err(TryRecvError::Empty) => {}
+            };
+
+            // So we can be completely sure that no generators
+            // were dropped until now
+            std::mem::drop(receivers);
         }
-
-        thread::sleep(SENDER_WARMUP_DURATION);
-
-        // Ensure all receivers have sent their first message
-        for r in &mut receivers {
-            let _ = r
-                .try_recv()
-                .expect(format!("Receiver within limit have not sent message").as_str());
-        }
-
-        // If we now attempt to use the original generator, it
-        // should be blocked (since we are still holding on to active
-        // receivers)
-        let mut r = gen.into_receiver();
-
-        // This should be instant, but we give it some time
-        thread::sleep(SENDER_WARMUP_DURATION);
-
-        // We want this to be blocked
-        let res = match r.try_recv() {
-            Ok(_) => false,
-            Err(TryRecvError::Disconnected) => false,
-            Err(TryRecvError::Empty) => true,
-        };
-
-        // So we can be completely sure that no generators
-        // were dropped until now
-        std::mem::drop(receivers);
-
-        res
     }
 }

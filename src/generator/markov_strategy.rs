@@ -92,36 +92,3 @@ impl GeneratorStrategy for MarkovChain {
         rx
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use std::io::Write;
-
-    use tempfile::NamedTempFile;
-
-    use crate::{
-        config::{GeneratorConfig, GeneratorType},
-        generator::{markov_strategy::MarkovChain, tests::test_generator_is_limited, Generator},
-    };
-
-    #[tokio::test(flavor = "multi_thread")]
-    async fn markov_generator_limits() {
-        let mut tmpfile: NamedTempFile = tempfile::NamedTempFile::new().unwrap();
-        write!(tmpfile, "I am but a little chain. I do chain things.").unwrap();
-
-        for limit in 1..100 {
-            let gen_config = GeneratorConfig::new(
-                20,
-                GeneratorType::MarkovChain(tmpfile.path().to_path_buf()),
-                limit,
-                0,
-                0,
-            );
-            let gen = MarkovChain::from_config(gen_config);
-            assert!(
-                test_generator_is_limited(gen, limit),
-                "last generator could produce output while blocked"
-            );
-        }
-    }
-}
