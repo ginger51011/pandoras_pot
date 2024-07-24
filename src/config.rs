@@ -371,6 +371,7 @@ mod tests {
 
             [generator]
             chunk_size = 1024
+            chunk_buffer = 100
             # The type of generator to be used
             type = { name = "random" }
 
