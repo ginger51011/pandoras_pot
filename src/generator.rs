@@ -46,8 +46,11 @@ pub trait GeneratorStrategy {
     /// This would generally mean spawning a [`mpsc::Sender`] with capacity `buffer_size`, and then
     /// passing that to a _blocking_ tokio task generating data.
     ///
-    /// Implementors can, but do not have to, think about HTML. Note that the first message
-    /// will be prefixed with [`HTML_PREFIX`].
+    /// Implementors **must** stop generating once the handle (the receiver) is dropped to avoid
+    /// leaking resources.
+    ///
+    /// Implementors can, but do not have to, think about HTML. Note that the first message will be
+    /// prefixed with [`HTML_PREFIX`].
     fn start(self, buffer_size: usize) -> mpsc::Receiver<Bytes>;
 }
 
