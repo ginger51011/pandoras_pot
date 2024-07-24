@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use crate::config::GeneratorConfig;
 use bytes::Bytes;
 use rand::{
@@ -8,6 +6,7 @@ use rand::{
     SeedableRng,
 };
 use tokio::sync::mpsc;
+use tracing::instrument;
 
 use super::{GeneratorStrategy, P_TAG_SIZE};
 
@@ -17,15 +16,18 @@ pub(crate) struct Random {
 }
 
 impl Random {
-    fn new(chunk_size: usize) -> Self {
+    pub fn new(chunk_size: usize) -> Self {
         Self { chunk_size }
     }
 }
 
 impl GeneratorStrategy for Random {
+    #[instrument(name = "spawn_random", skip(self))]
     fn spawn(self, buffer_size: usize) -> mpsc::Receiver<Bytes> {
         let (tx, rx) = mpsc::channel(buffer_size);
+        let span = tracing::Span::current();
         tokio::task::spawn_blocking(move || {
+            let _entered = span.enter();
             // No need to be secure, we are smacking bots
             let mut smol_rng = SmallRng::from_entropy();
             loop {

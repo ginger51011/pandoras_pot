@@ -3,6 +3,7 @@ use std::{fs, path::Path, process::exit};
 use tokio::sync::mpsc;
 
 use bytes::Bytes;
+use tracing::instrument;
 
 use crate::error_code;
 
@@ -27,9 +28,12 @@ impl Static {
 }
 
 impl GeneratorStrategy for Static {
+    #[instrument(name = "spawn_static", skip(self))]
     fn spawn(self, buffer_size: usize) -> mpsc::Receiver<Bytes> {
         let (tx, rx) = mpsc::channel(buffer_size);
+        let span = tracing::Span::current();
         tokio::task::spawn_blocking(move || loop {
+            let _entered = span.enter();
             loop {
                 if tx.blocking_send(self.data.clone()).is_err() {
                     break;

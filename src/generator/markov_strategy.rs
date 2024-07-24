@@ -4,6 +4,7 @@ use bytes::Bytes;
 use markovish::Chain;
 use rand::{rngs::SmallRng, SeedableRng};
 use tokio::sync::mpsc::{self};
+use tracing::instrument;
 
 use crate::error_code;
 
@@ -40,10 +41,12 @@ impl MarkovChain {
 }
 
 impl GeneratorStrategy for MarkovChain {
+    #[instrument(name = "spawn_markov_chain", skip(self))]
     fn spawn(self, buffer_size: usize) -> mpsc::Receiver<Bytes> {
-        // TODO: Config buffer size?
         let (tx, rx) = mpsc::channel(buffer_size);
+        let span = tracing::Span::current();
         tokio::task::spawn_blocking(move || {
+            let _entered = span.enter();
             let desired_size = self.chunk_size - P_TAG_SIZE;
 
             loop {

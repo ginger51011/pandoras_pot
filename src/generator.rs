@@ -28,7 +28,7 @@ pub const FIRST_MSG_PREFIX: &str = "<!DOCTYPE html><html><body>";
 
 /// Container for generators
 #[derive(Clone, Debug)]
-pub(crate) enum GeneratorContainer {
+pub(crate) enum GeneratorStrategyContainer {
     Random(Random),
     MarkovChain(MarkovChain),
     Static(Static),
@@ -41,12 +41,17 @@ pub trait GeneratorStrategy {
 
 /// Trait that describes a generator that can be converted to a stream,
 /// outputting infinite amounts of very useful strings.
+///
+/// Cheap to clone, as internals are wrapped in [`Arc`]. Does _not_ need to be wrapped in another
+/// one.
+#[derive(Debug, Clone)]
 pub struct Generator {
     permits: Arc<Semaphore>,
     config: Arc<GeneratorConfig>,
 }
 impl Generator {
-    pub fn new(permits: Arc<Semaphore>, config: Arc<GeneratorConfig>) -> Self {
+    pub fn from_config(config: Arc<GeneratorConfig>) -> Self {
+        let permits = Arc::new(Semaphore::new(config.max_concurrent()));
         Self { permits, config }
     }
 
@@ -59,8 +64,7 @@ impl Generator {
     fn into_receiver<T: GeneratorStrategy>(self, strategy: T) -> Receiver<Bytes> {
         // To provide accurate stats, the buffer must be 1
         let (tx, rx) = tokio::sync::mpsc::channel::<Bytes>(1);
-        // TODO: Set this from config
-        let mut gen = strategy.spawn(256);
+        let mut gen = strategy.spawn(self.config.chunk_buffer);
 
         tokio::spawn(
             async move {
@@ -151,7 +155,7 @@ impl Generator {
         rx
     }
 
-    fn into_stream<T: GeneratorStrategy>(self, strategy: T) -> impl Stream<Item = Bytes> {
+    pub fn into_stream<T: GeneratorStrategy>(self, strategy: T) -> impl Stream<Item = Bytes> {
         tokio_stream::wrappers::ReceiverStream::new(self.into_receiver(strategy))
     }
 }
