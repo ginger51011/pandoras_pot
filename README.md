@@ -301,7 +301,7 @@ time_limit = 0
 size_limit = 0
 
 # How many chunks should be buffered for each connection. Higher values mean
-# more memory usage, but may lead to increased performance.
+# more memory usage, but may lead to increased performance. Must be >= 1.
 chunk_buffer = 20
 
 [logging]
