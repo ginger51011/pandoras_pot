@@ -28,9 +28,8 @@ impl Static {
 }
 
 impl GeneratorStrategy for Static {
-    #[instrument(name = "spawn_static", skip(self))]
-    fn start(self, buffer_size: usize) -> mpsc::Receiver<Bytes> {
-        let (tx, rx) = mpsc::channel(buffer_size);
+    #[instrument(name = "spawn_static", skip_all)]
+    fn start(self, tx: mpsc::Sender<Bytes>) {
         let span = tracing::Span::current();
         tokio::task::spawn_blocking(move || {
             let _entered = span.enter();
@@ -40,6 +39,5 @@ impl GeneratorStrategy for Static {
                 }
             }
         });
-        rx
     }
 }

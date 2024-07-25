@@ -40,9 +40,8 @@ impl MarkovChain {
 }
 
 impl GeneratorStrategy for MarkovChain {
-    #[instrument(name = "spawn_markov_chain", skip(self))]
-    fn start(self, buffer_size: usize) -> mpsc::Receiver<Bytes> {
-        let (tx, rx) = mpsc::channel(buffer_size);
+    #[instrument(name = "spawn_markov_chain", skip_all)]
+    fn start(self, tx: mpsc::Sender<Bytes>) {
         let span = tracing::Span::current();
         tokio::task::spawn_blocking(move || {
             let _entered = span.enter();
@@ -88,6 +87,5 @@ impl GeneratorStrategy for MarkovChain {
                 }
             }
         });
-        rx
     }
 }

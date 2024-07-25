@@ -41,17 +41,17 @@ pub(crate) enum GeneratorStrategyContainer {
 /// ownership. This is to allow a strategy to only spawn a limited number of messages, or specific
 /// messages in order in their [`GeneratorStrategy::start`] implementation.
 pub trait GeneratorStrategy {
-    /// Start generating using this strategy.
+    /// Start generating using this strategy, filling the provided sender.
     ///
-    /// This would generally mean spawning a [`mpsc::Sender`] with capacity `buffer_size`, and then
-    /// passing that to a _blocking_ tokio task generating data.
+    /// This would generally mean passing the `tx` that to a _blocking_ tokio task generating
+    /// data.
     ///
-    /// Implementors **must** stop generating once the handle (the receiver) is dropped to avoid
-    /// leaking resources.
+    /// Implementors **must** stop generating once the handle (the receiver of the channel) is
+    /// dropped to avoid leaking resources.
     ///
     /// Implementors can, but do not have to, think about HTML. Note that the first message will be
     /// prefixed with [`HTML_PREFIX`].
-    fn start(self, buffer_size: usize) -> mpsc::Receiver<Bytes>;
+    fn start(self, tx: mpsc::Sender<Bytes>);
 }
 
 /// Trait that describes a generator that can be converted to a stream, outputting infinite amounts
@@ -80,6 +80,7 @@ impl Generator {
     where
         T: GeneratorStrategy + Send + 'static,
     {
+        // To provide accurate stats, the buffer must be 1
         let (tx, rx) = tokio::sync::mpsc::channel::<Bytes>(1);
         tokio::spawn(
             async move {
@@ -89,8 +90,8 @@ impl Generator {
                     self.permits().available_permits()
                 );
 
-                // To provide accurate stats, the buffer must be 1
-                let mut gen = strategy.start(self.config.chunk_buffer);
+                let (gen_tx, mut gen) = mpsc::channel(self.config.chunk_buffer);
+                strategy.start(gen_tx);
 
                 // Prepend so it kind of looks like a valid website
                 let mut bytes_written = 0_usize;
