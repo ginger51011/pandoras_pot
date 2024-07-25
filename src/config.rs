@@ -146,7 +146,7 @@ pub(crate) struct GeneratorConfig {
     pub size_limit: usize,
 
     /// How many chunks should be buffered for each connection. Higher values mean more memory
-    /// usage, but may lead to increased performance.
+    /// usage, but may lead to increased performance. Must be >= 1.
     #[serde(default = "default_generator_chunk_buffer")]
     pub chunk_buffer: usize,
 }

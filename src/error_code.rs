@@ -12,3 +12,4 @@ pub(crate) const CANNOT_OPEN_LOG_FILE: i32 = 20;
 /// The configured generator data file path could not be read.
 pub(crate) const CANNOT_READ_GENERATOR_DATA_FILE: i32 = 30;
 pub(crate) const GENERATOR_CHUNK_SIZE_TOO_SMALL: i32 = 31;
+pub(crate) const GENERATOR_CHUNK_BUFFER_TOO_SMALL: i32 = 32;

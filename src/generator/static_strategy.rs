@@ -31,10 +31,12 @@ impl GeneratorStrategy for Static {
     #[instrument(name = "spawn_static", skip_all)]
     fn start(self, tx: mpsc::Sender<Bytes>) {
         let span = tracing::Span::current();
-        tokio::task::spawn_blocking(move || {
+
+        // Cloning a `Bytes` is very cheap, so this does not need to be blocking
+        tokio::task::spawn(async move {
             let _entered = span.enter();
             loop {
-                if tx.blocking_send(self.data.clone()).is_err() {
+                if tx.send(self.data.clone()).await.is_err() {
                     break;
                 }
             }

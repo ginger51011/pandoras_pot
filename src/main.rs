@@ -90,11 +90,16 @@ async fn text_stream(
 fn create_app(config: &Config) -> Result<Router, i32> {
     // This will mess upp for example markov
     if config.generator.chunk_size < P_TAG_SIZE {
-        println!(
+        eprintln!(
             "generator.chunk_size too small (min size is {}, but it should be bigger!)",
             P_TAG_SIZE
         );
         return Err(error_code::GENERATOR_CHUNK_SIZE_TOO_SMALL);
+    }
+
+    if config.generator.chunk_buffer < 1 {
+        eprintln!("generator.chunk_buffer must be >= 1");
+        return Err(error_code::GENERATOR_CHUNK_BUFFER_TOO_SMALL);
     }
 
     // Create gen depending on config
@@ -124,7 +129,7 @@ fn create_app(config: &Config) -> Result<Router, i32> {
         }
         tracing::info!("Listening on routes: {}", config.http.routes.join(", "));
     } else {
-        println!("http.catch_all was disabled, but no routes was provided!");
+        eprintln!("http.catch_all was disabled, but no routes was provided!");
         return Err(error_code::BAD_CONFIG);
     }
 
@@ -143,7 +148,7 @@ fn create_app(config: &Config) -> Result<Router, i32> {
     // u64, so not below zero
     if config.http.rate_limit != 0 {
         if config.http.rate_limit_period == 0 {
-            println!("You cannot activate rate limiting and then set the period to 0!");
+            eprintln!("You cannot activate rate limiting and then set the period to 0!");
             return Err(error_code::BAD_CONFIG);
         }
         // See https://github.com/tokio-rs/axum/discussions/987#discussioncomment-2678115
@@ -176,7 +181,7 @@ async fn main() {
         if let Some(actual) = c {
             actual
         } else {
-            println!(
+            eprintln!(
                 "File at '{}' could not be parsed as proper config",
                 pb.to_string_lossy()
             );
@@ -220,7 +225,7 @@ async fn main() {
     {
         Ok(file) => tracing_subscriber::fmt::layer().json().with_writer(file),
         Err(e) => {
-            println!(
+            eprintln!(
                 "failed to open log path '{}' due to error:\n\t{}",
                 config.logging.output_path, e
             );
@@ -244,7 +249,7 @@ async fn main() {
 
     if config.http.health_port_enabled {
         if config.http.port == config.http.health_port {
-            println!(
+            eprintln!(
                 "Health port and normal port cannot be the same! (Both are {})",
                 config.http.port
             );
@@ -341,6 +346,16 @@ mod tests {
         match create_app(&config) {
             Err(code) => assert_eq!(code, error_code::GENERATOR_CHUNK_SIZE_TOO_SMALL),
             _ => panic!("too small chunk size was allowed"),
+        }
+    }
+
+    #[tokio::test]
+    async fn app_too_small_chunk_buffer() {
+        let mut config = Config::default();
+        config.generator.chunk_buffer = 0;
+        match create_app(&config) {
+            Err(code) => assert_eq!(code, error_code::GENERATOR_CHUNK_BUFFER_TOO_SMALL),
+            _ => panic!("too small chunk buffer was allowed"),
         }
     }
 
