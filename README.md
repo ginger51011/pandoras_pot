@@ -271,6 +271,8 @@ health_port_enabled = false
 # Port to be used for health checks. Should probably not be accessible from the
 # outside. Has no effect if `http.health_port_enabled` is `false`.
 health_port = "8081"
+# The `Content-Type` header set in responses.
+content_type = "text/html; charset=utf-8"
 
 [generator]
 # The size of each generated chunk in bytes. Has a big impact on performance, so

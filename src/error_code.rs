@@ -5,6 +5,7 @@ pub(crate) const UNPARSEABLE_CONFIG: i32 = 10;
 
 /// A configuration has conflicting settings.
 pub(crate) const BAD_CONFIG: i32 = 11;
+pub(crate) const BAD_CONTENT_TYPE: i32 = 12;
 
 /// The desired log file path could not be opened.
 pub(crate) const CANNOT_OPEN_LOG_FILE: i32 = 20;
