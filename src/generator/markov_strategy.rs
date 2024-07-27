@@ -82,7 +82,10 @@ impl GeneratorStrategy for MarkovChain {
                     }
                 }
 
-                if tx.blocking_send(result.into()).is_err() {
+                if tx
+                    .blocking_send(Bytes::from(format!("<p>\n{result}\n</p>\n")))
+                    .is_err()
+                {
                     break;
                 }
             }

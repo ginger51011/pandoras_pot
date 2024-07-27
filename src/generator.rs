@@ -23,10 +23,6 @@ use self::{markov_strategy::MarkovChain, random_strategy::Random, static_strateg
 /// `generator.chunk_size` must be larger than this.
 pub(crate) const P_TAG_SIZE: usize = 10;
 
-/// Prefix to be added to the first sent generated message to make it look like
-/// a very real and legit HTML page.
-pub const HTML_PREFIX: &str = "<!DOCTYPE html><html><body>";
-
 /// Container for generators
 #[derive(Clone, Debug)]
 pub(crate) enum GeneratorStrategyContainer {
@@ -50,7 +46,7 @@ pub trait GeneratorStrategy {
     /// dropped to avoid leaking resources.
     ///
     /// Implementors can, but do not have to, think about HTML. Note that the first message will be
-    /// prefixed with [`HTML_PREFIX`].
+    /// prefixed with config.generator.prefix.
     fn start(self, tx: mpsc::Sender<Bytes>);
 }
 
@@ -74,8 +70,8 @@ impl Generator {
         self.permits.clone()
     }
 
-    /// Returns an infinite stream using this generator strategy, prepending [`HTML_PREFIX`] to the
-    /// first chunk.
+    /// Returns an infinite stream using this generator strategy, prepending generator.prefix to
+    /// the first chunk.
     fn into_receiver<T>(self, strategy: T) -> mpsc::Receiver<Bytes>
     where
         T: GeneratorStrategy + Send + 'static,
@@ -99,7 +95,7 @@ impl Generator {
                 // For the first value we want to prepend something to make it look like HTML.
                 // We don't want to just chain it, because then the first chunk of the body always
                 // looks the same.
-                let mut first_msg = BytesMut::from(HTML_PREFIX);
+                let mut first_msg = BytesMut::from(self.config.prefix.as_str());
                 if let Some(first_gen) = gen.recv().await {
                     first_msg.extend(first_gen);
                 } else {
@@ -209,6 +205,7 @@ mod tests {
                 0, // No limit
                 0, // No limit
                 1,
+                "<html>".to_string(),
             ));
 
             let g = Generator::from_config(config);

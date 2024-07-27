@@ -304,6 +304,13 @@ size_limit = 0
 # more memory usage, but may lead to increased performance. Must be >= 1.
 chunk_buffer = 20
 
+# Prefix that will be used for the first message to an incoming connection.
+# Usually used to set an HTML prefix. Can be set to "" to disable.
+#
+# Example usage: Set to "{" for a static generator using a JSON file to make
+# output look like a valid stream of JSON that will eventually end (it won't).
+prefix = "<!DOCTYPE html><html><body>"
+
 [logging]
 # Output file for logs.
 output_path = "pandoras.log"
