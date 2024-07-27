@@ -7,7 +7,7 @@ mod stream_body;
 
 use axum::{
     error_handling::HandleErrorLayer,
-    http::{header::CONTENT_TYPE, HeaderMap, StatusCode},
+    http::{header::CONTENT_TYPE, HeaderMap, HeaderValue, StatusCode},
     response::IntoResponse,
     routing::{get, on, MethodFilter},
     BoxError, Router,
@@ -64,12 +64,13 @@ impl<B> MakeSpan<B> for PandoraRequestSpan {
 }
 
 async fn text_stream(
+    content_type: HeaderValue,
     gen: Generator,
     gen_strategy: GeneratorStrategyContainer,
 ) -> impl IntoResponse {
     // Set some headers to trick le bots
     let mut headers = HeaderMap::new();
-    headers.insert(CONTENT_TYPE, "text/html; charset=utf-8".parse().unwrap());
+    headers.insert(CONTENT_TYPE, content_type);
 
     match gen_strategy {
         GeneratorStrategyContainer::Random(g) => {
@@ -115,7 +116,15 @@ fn create_app(config: &Config) -> Result<Router, i32> {
     };
     let generator_confg = Arc::new(config.generator.clone());
     let generator = Generator::from_config(generator_confg);
-    let handler = move || text_stream(generator, gen_strategy);
+
+    let content_type = config.http.content_type.parse().map_err(|e| {
+        eprintln!(
+            "cannot parse content_type '{}' to valid header due to error: {e}",
+            config.http.content_type
+        );
+        error_code::BAD_CONTENT_TYPE
+    })?;
+    let handler = move || text_stream(content_type, generator, gen_strategy);
 
     let mut app = Router::new();
     if config.http.catch_all {
@@ -283,7 +292,7 @@ mod tests {
     use axum::{
         body::Body,
         extract::Request,
-        http::{Method, StatusCode},
+        http::{header::CONTENT_TYPE, HeaderMap, Method, StatusCode},
         Router,
     };
     use tempfile::NamedTempFile;
@@ -418,6 +427,7 @@ mod tests {
 
         let mut config = Config::default();
         config.generator.generator_type = GeneratorType::Static(tmpfile.path().to_path_buf());
+        config.http.content_type = "application/json+inatest".to_string();
 
         let app = create_app(&config).unwrap();
 
@@ -427,6 +437,10 @@ mod tests {
             .unwrap();
 
         assert_eq!(response.status(), StatusCode::OK);
+
+        let mut expected_headers = HeaderMap::new();
+        expected_headers.insert(CONTENT_TYPE, config.http.content_type.parse().unwrap());
+        assert_eq!(response.headers(), &expected_headers);
 
         // We're safe until we try to actually consume the body. But we can
         // check if it _looks_ like an infinite stream.

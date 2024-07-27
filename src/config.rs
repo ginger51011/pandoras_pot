@@ -72,6 +72,9 @@ pub(crate) struct HttpConfig {
     /// outside. Has no effect if `http.health_port_enabled` is `false`.
     #[serde(default = "default_http_health_port")]
     pub health_port: String,
+    /// The `Content-Type` header set in responses.
+    #[serde(default = "default_http_content_type")]
+    pub content_type: String,
 }
 
 impl Default for HttpConfig {
@@ -84,6 +87,7 @@ impl Default for HttpConfig {
             rate_limit_period: default_http_rate_limit(),
             health_port_enabled: default_http_health_port_enabled(),
             health_port: default_http_health_port(),
+            content_type: default_http_content_type(),
         }
     }
 }
@@ -117,6 +121,10 @@ const fn default_http_health_port_enabled() -> bool {
 
 fn default_http_health_port() -> String {
     "8081".to_string()
+}
+
+fn default_http_content_type() -> String {
+    "text/html; charset=utf-8".to_string()
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -383,6 +391,8 @@ mod tests {
             # Amount of seconds that `http.rate_limit` checks on. Does nothing if rate limit is set
             # to 0.
             rate_limit_period = 300 # 5 minutes
+            content_type = "application/json"
+
 
             [generator]
             chunk_size = 1024
