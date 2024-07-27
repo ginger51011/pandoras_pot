@@ -149,6 +149,14 @@ pub(crate) struct GeneratorConfig {
     /// usage, but may lead to increased performance. Must be >= 1.
     #[serde(default = "default_generator_chunk_buffer")]
     pub chunk_buffer: usize,
+
+    /// Prefix that will be used for the first message to an incoming connection.
+    /// Usually used to set an HTML prefix. Can be set to "" to disable.
+    ///
+    /// Example usage: Set to "{" for a static generator using a JSON file to make
+    /// output look like a valid stream of JSON that will eventually end (it won't).
+    #[serde(default = "default_generator_prefix")]
+    pub prefix: String,
 }
 
 // While one could argue being able to pass strings in data as well is nicer, we quickly run into the
@@ -193,6 +201,7 @@ impl Default for GeneratorConfig {
             default_generator_time_limit(),
             default_generator_size_limit(),
             default_generator_chunk_buffer(),
+            default_generator_prefix(),
         )
     }
 }
@@ -205,6 +214,7 @@ impl GeneratorConfig {
         time_limit: u64,
         size_limit: usize,
         chunk_buffer: usize,
+        prefix: String,
     ) -> Self {
         Self {
             chunk_size,
@@ -213,6 +223,7 @@ impl GeneratorConfig {
             time_limit,
             size_limit,
             chunk_buffer,
+            prefix,
         }
     }
 
@@ -251,6 +262,10 @@ const fn default_generator_size_limit() -> usize {
 
 const fn default_generator_chunk_buffer() -> usize {
     20
+}
+
+fn default_generator_prefix() -> String {
+    "<!DOCTYPE html><html><body>".to_string()
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -378,6 +393,8 @@ mod tests {
             # For generator.type it is also possible to set a markov chain generator, using
             # a text file as a source of data. Then you can use this (but uncommented, duh):
             # type = { name = "markov_chain", data = "/rootvalue.txt" }
+
+            prefix = "{"
 
             [logging]
             # Output file for logs.
