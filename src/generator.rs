@@ -42,7 +42,7 @@ pub trait GeneratorStrategy {
     /// dropped to avoid leaking resources.
     ///
     /// Implementors can, but do not have to, think about HTML. Note that the first message will be
-    /// prefixed with [`HTML_PREFIX`].
+    /// prefixed with config.generator.prefix.
     fn start(self, tx: mpsc::Sender<Bytes>);
 }
 
@@ -66,8 +66,8 @@ impl Generator {
         self.permits.clone()
     }
 
-    /// Returns an infinite stream using this generator strategy, prepending [`HTML_PREFIX`] to the
-    /// first chunk.
+    /// Returns an infinite stream using this generator strategy, prepending generator.prefix to
+    /// the first chunk.
     fn into_receiver<T>(self, strategy: T) -> mpsc::Receiver<Bytes>
     where
         T: GeneratorStrategy + Send + 'static,
