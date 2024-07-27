@@ -274,8 +274,8 @@ health_port = "8081"
 
 [generator]
 # The size of each generated chunk in bytes. Has a big impact on performance, so
-# play around a bit! Note that if this is set too low (like 10 bytes), `pandoras_pot`
-# will refuse to run.
+# play around a bit! Note that if this is set too low (smaller than prefix size),
+# `pandoras_pot` will refuse to run.
 chunk_size = 16384 # 1024 * 16
 # The type of generator to be used
 type = { name = "random" }
@@ -303,6 +303,13 @@ size_limit = 0
 # How many chunks should be buffered for each connection. Higher values mean
 # more memory usage, but may lead to increased performance. Must be >= 1.
 chunk_buffer = 20
+
+# Prefix that will be used for the first message to an incoming connection.
+# Usually used to set an HTML prefix. Can be set to "" to disable.
+#
+# Example usage: Set to "{" for a static generator using a JSON file to make
+# output look like a valid stream of JSON that will eventually end (it won't).
+prefix = "<!DOCTYPE html><html><body>"
 
 [logging]
 # Output file for logs.

@@ -8,7 +8,7 @@ use rand::{
 use tokio::sync::mpsc;
 use tracing::instrument;
 
-use super::{GeneratorStrategy, P_TAG_SIZE};
+use super::GeneratorStrategy;
 
 /// Generates `chunk_size` of completely random text.
 #[derive(Clone, Debug)]
@@ -31,7 +31,7 @@ impl GeneratorStrategy for Random {
             // No need to be secure, we are smacking bots
             let mut smol_rng = SmallRng::from_entropy();
             loop {
-                let s = Alphanumeric.sample_string(&mut smol_rng, self.chunk_size - P_TAG_SIZE);
+                let s = Alphanumeric.sample_string(&mut smol_rng, self.chunk_size);
                 let res = Bytes::from(format!("<p>\n{s}\n</p>\n"));
 
                 if tx.blocking_send(res).is_err() {

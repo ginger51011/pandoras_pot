@@ -8,7 +8,7 @@ use tracing::instrument;
 
 use crate::error_code;
 
-use super::{GeneratorStrategy, P_TAG_SIZE};
+use super::GeneratorStrategy;
 
 /// A generator strategy using Markov chains to generate text. Due to the nature of markov chains,
 /// each new generated piece of string may not exactly be `chunk_size`, and might be a bit larger.
@@ -45,17 +45,16 @@ impl GeneratorStrategy for MarkovChain {
         let span = tracing::Span::current();
         tokio::task::spawn_blocking(move || {
             let _entered = span.enter();
-            let desired_size = self.chunk_size - P_TAG_SIZE;
             let mut smol_rng = SmallRng::from_entropy();
 
             loop {
-                let mut result = String::with_capacity(desired_size + 100);
-                'outer: while result.as_bytes().len() < desired_size {
+                let mut result = String::with_capacity(self.chunk_size + 100);
+                'outer: while result.as_bytes().len() < self.chunk_size {
                     // We don't want to check result size every time, but we cannot know
                     // how large a token is. But most of them are (probably English) words,
                     // most words are 5 chars long and each English UTF-8 char
                     // is 1 byte. So we take a guess and see later.
-                    let size_left = desired_size - result.as_bytes().len();
+                    let size_left = self.chunk_size - result.as_bytes().len();
                     let likely_token_n = size_left / 5;
 
                     if likely_token_n == 0 {

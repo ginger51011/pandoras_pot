@@ -19,14 +19,6 @@ use tracing::Instrument;
 
 use self::{markov_strategy::MarkovChain, random_strategy::Random, static_strategy::Static};
 
-/// Size of wrapping a string in a "<p>\n{yourstring}\n</p>\n".
-/// `generator.chunk_size` must be larger than this.
-pub(crate) const P_TAG_SIZE: usize = 10;
-
-/// Prefix to be added to the first sent generated message to make it look like
-/// a very real and legit HTML page.
-pub const HTML_PREFIX: &str = "<!DOCTYPE html><html><body>";
-
 /// Container for generators
 #[derive(Clone, Debug)]
 pub(crate) enum GeneratorStrategyContainer {
@@ -99,7 +91,7 @@ impl Generator {
                 // For the first value we want to prepend something to make it look like HTML.
                 // We don't want to just chain it, because then the first chunk of the body always
                 // looks the same.
-                let mut first_msg = BytesMut::from(HTML_PREFIX);
+                let mut first_msg = BytesMut::from(self.config.prefix.as_str());
                 if let Some(first_gen) = gen.recv().await {
                     first_msg.extend(first_gen);
                 } else {
@@ -209,6 +201,7 @@ mod tests {
                 0, // No limit
                 0, // No limit
                 1,
+                "<DOCTYPE html>".to_string(),
             ));
 
             let g = Generator::from_config(config);

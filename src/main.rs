@@ -25,7 +25,7 @@ use generator::{random_strategy::Random, Generator, GeneratorStrategyContainer};
 
 use crate::{
     config::GeneratorType,
-    generator::{markov_strategy::MarkovChain, static_strategy::Static, P_TAG_SIZE},
+    generator::{markov_strategy::MarkovChain, static_strategy::Static},
     handler::RequestHandler,
 };
 
@@ -89,10 +89,10 @@ async fn text_stream(
 /// Returns an exit code in case of configuration errors.
 fn create_app(config: &Config) -> Result<Router, i32> {
     // This will mess upp for example markov
-    if config.generator.chunk_size < P_TAG_SIZE {
+    if config.generator.chunk_size < config.generator.prefix.len() {
         eprintln!(
             "generator.chunk_size too small (min size is {}, but it should be bigger!)",
-            P_TAG_SIZE
+            config.generator.prefix.len()
         );
         return Err(error_code::GENERATOR_CHUNK_SIZE_TOO_SMALL);
     }
@@ -293,7 +293,6 @@ mod tests {
     use crate::{
         config::{Config, GeneratorType},
         create_app, error_code,
-        generator::{HTML_PREFIX, P_TAG_SIZE},
     };
 
     /// Tests if an app responds with what seems like an infinite stream on
@@ -342,7 +341,7 @@ mod tests {
     #[tokio::test]
     async fn app_too_small_chunk_size() {
         let mut config = Config::default();
-        config.generator.chunk_size = P_TAG_SIZE - 3;
+        config.generator.chunk_size = config.generator.prefix.len() - 1;
         match create_app(&config) {
             Err(code) => assert_eq!(code, error_code::GENERATOR_CHUNK_SIZE_TOO_SMALL),
             _ => panic!("too small chunk size was allowed"),
@@ -434,7 +433,7 @@ mod tests {
 
         // First one should contain tags as well
         let first = body.next().await.unwrap().unwrap();
-        assert_eq!(first, format!("{HTML_PREFIX}{msg}"));
+        assert_eq!(first, format!("{}{msg}", config.generator.prefix));
 
         // All the following should be our very useful message
         for _ in 0..1000 {
