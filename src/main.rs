@@ -184,7 +184,8 @@ fn create_app(config: &Config) -> Result<Router, i32> {
 
 #[tokio::main]
 async fn main() {
-    let config: Config = match parse_args() {
+    let pargs = pico_args::Arguments::from_env();
+    let config: Config = match parse_args(pargs, &mut std::io::stdout()) {
         Ok(Some(config)) => config,
         Ok(None) => Config::read_from_default_path()
             .inspect(|_| {

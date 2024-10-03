@@ -2,6 +2,7 @@
 
 /// Cannot parse arguments
 pub(crate) const ARGUMENT_ERROR: i32 = 1;
+pub(crate) const UNKNOWN_ERROR: i32 = 2;
 
 /// Cannot deserialize config.
 pub(crate) const UNPARSEABLE_CONFIG: i32 = 10;

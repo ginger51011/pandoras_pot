@@ -8,7 +8,7 @@ use std::{
 use serde::{Deserialize, Serialize};
 
 /// Configuration for `pandoras_pot`.
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq)]
 pub(crate) struct Config {
     /// Configuration related to HTTP server.
     #[serde(default)]
@@ -44,7 +44,7 @@ impl Config {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub(crate) struct HttpConfig {
     /// Port to listen on.
     #[serde(default = "default_http_port")]
@@ -127,7 +127,7 @@ fn default_http_content_type() -> String {
     "text/html; charset=utf-8".to_string()
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub(crate) struct GeneratorConfig {
     /// The size of each generated chunk in bytes. Has a big impact on performance, so
     /// play around a bit! Note that if this is set too low (like 10 bytes), `pandoras_pot`
@@ -170,7 +170,7 @@ pub(crate) struct GeneratorConfig {
 // While one could argue being able to pass strings in data as well is nicer, we quickly run into the
 // issue that we might start sending file paths if the user misconfigures. Using only paths makes
 // sure that we will never have to take chances what we send to bots.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(tag = "name", content = "data")]
 #[serde(rename_all = "snake_case")]
 pub(crate) enum GeneratorType {
@@ -276,7 +276,7 @@ fn default_generator_prefix() -> String {
     "<!DOCTYPE html><html><body>".to_string()
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub(crate) struct LoggingConfig {
     /// Output file for logs.
     #[serde(default = "default_logging_output_path")]

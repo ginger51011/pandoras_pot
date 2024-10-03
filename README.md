@@ -12,6 +12,7 @@
 </div>
 
 # Summary
+
 Inspired by [HellPot](https://github.com/yunginnanet/HellPot), `pandoras_pot`
 is an HTTP honeypot that aims to bring even more misery on unruly web crawlers that
 don't respect your `robots.txt`.
@@ -86,8 +87,10 @@ example.com {
 After this you can simply run (if you installed using `cargo install pandoras_pot`):
 
 ```sh
-pandoras_pot
+pandoras_pot --help
 ```
+
+to get more info.
 
 Done!
 
@@ -246,6 +249,12 @@ pandoras_pot <path-to-config>
 ```
 
 or put it in a file at `$HOME/.config/pandoras_pot/config.toml`.
+
+You can always get the default configuration using
+
+```sh
+pandoras_pot --print-default-config
+```
 
 A sample file can be found below:
 
