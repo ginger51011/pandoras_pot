@@ -85,7 +85,7 @@ pub(crate) fn parse_args<W: Write>(
             Err(error_code::UNPARSEABLE_CONFIG)
         }
     } else {
-        write!(output_writer, "{HELP}").map_err(|_| error_code::UNKNOWN_ERROR)?;
+        write!(output_writer, "{HELP}\n").map_err(|_| error_code::UNKNOWN_ERROR)?;
         return Err(error_code::ARGUMENT_ERROR);
     }
 }
@@ -121,7 +121,7 @@ mod tests {
             pico_args::Arguments::from_vec(vec!["--bad-word".into(), "--another-one".into()]);
         let mut buf: Vec<u8> = vec![];
         let res = parse_args(pargs, &mut buf);
-        assert_eq!(String::from_utf8(buf).unwrap(), HELP);
+        assert_eq!(String::from_utf8(buf).unwrap(), format!("{HELP}\n"));
         match res {
             Err(error_code::ARGUMENT_ERROR) => {
                 // Ok
@@ -137,7 +137,7 @@ mod tests {
             let pargs = pico_args::Arguments::from_vec(vec![flag.into()]);
             let mut buf: Vec<u8> = vec![];
             let res = parse_args(pargs, &mut buf);
-            assert_eq!(String::from_utf8(buf).unwrap(), HELP);
+            assert_eq!(String::from_utf8(buf).unwrap(), format!("{HELP}\n"));
             match res {
                 Err(0) => {
                     // Ok
@@ -154,7 +154,7 @@ mod tests {
             let pargs = pico_args::Arguments::from_vec(vec![flag.into()]);
             let mut buf: Vec<u8> = vec![];
             let res = parse_args(pargs, &mut buf);
-            assert_eq!(String::from_utf8(buf).unwrap(), VERSION);
+            assert_eq!(String::from_utf8(buf).unwrap(), format!("{VERSION}\n"));
             match res {
                 Err(0) => {
                     // Ok
@@ -170,7 +170,7 @@ mod tests {
         let pargs = pico_args::Arguments::from_vec(vec!["-V".into(), "-h".into(), "--help".into()]);
         let mut buf: Vec<u8> = vec![];
         let res = parse_args(pargs, &mut buf);
-        assert_eq!(String::from_utf8(buf).unwrap(), HELP);
+        assert_eq!(String::from_utf8(buf).unwrap(), format!("{HELP}\n"));
         match res {
             Err(0) => {
                 // Ok
@@ -186,7 +186,7 @@ mod tests {
             pico_args::Arguments::from_vec(vec!["--print-default-config".into(), "-V".into()]);
         let mut buf: Vec<u8> = vec![];
         let res = parse_args(pargs, &mut buf);
-        assert_eq!(String::from_utf8(buf).unwrap(), VERSION);
+        assert_eq!(String::from_utf8(buf).unwrap(), format!("{VERSION}\n"));
         match res {
             Err(0) => {
                 // Ok
@@ -234,7 +234,7 @@ mod tests {
         match res {
             Ok(Some(parsed_config)) => {
                 assert_eq!(
-                    parsed_config.http.health_port, written_config.http.health_port,
+                    parsed_config, written_config,
                     "written and parsed config do not match!"
                 );
             }
