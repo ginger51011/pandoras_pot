@@ -329,7 +329,7 @@ mod tests {
             let mut body = response.into_body().into_data_stream();
             for _ in 0..1000 {
                 match body.next().await {
-                    Some(b) => assert!(b.unwrap().len() > 0),
+                    Some(b) => assert!(!b.unwrap().is_empty()),
                     None => return false,
                 };
             }
@@ -495,7 +495,7 @@ mod tests {
 
         // First should be fine, it is never limited
         let first = body.next().await.unwrap().unwrap();
-        assert!(first.len() > 0);
+        assert!(!first.is_empty());
 
         // The next one should be over the limit and the stream should
         // have closed
@@ -527,7 +527,7 @@ mod tests {
 
         // First should be fine, it is never limited
         let first = body.next().await.unwrap().unwrap();
-        assert!(first.len() > 0);
+        assert!(!first.is_empty());
 
         // Take for a while
         while Duration::from_millis(1010) > start_time.elapsed().unwrap() {

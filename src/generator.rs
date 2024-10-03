@@ -220,7 +220,7 @@ mod tests {
             for r in &mut receivers {
                 let _ = r
                     .try_recv()
-                    .expect(format!("Receiver within limit have not sent message").as_str());
+                    .unwrap_or_else(|_| { panic!("{}", "Receiver within limit have not sent message".to_string()) });
             }
 
             // If we now attempt to use the original generator, it

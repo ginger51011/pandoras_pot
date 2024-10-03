@@ -49,10 +49,10 @@ pub(crate) fn parse_args<W: Write>(
     output_writer: &mut W,
 ) -> Result<Option<Config>, i32> {
     if pargs.contains(["-h", "--help"]) {
-        write!(output_writer, "{HELP}\n").map_err(|_| error_code::UNKNOWN_ERROR)?;
+        writeln!(output_writer, "{HELP}").map_err(|_| error_code::UNKNOWN_ERROR)?;
         return Err(0);
     } else if pargs.contains(["-V", "--version"]) {
-        write!(output_writer, "{VERSION}\n",).map_err(|_| error_code::UNKNOWN_ERROR)?;
+        writeln!(output_writer, "{VERSION}",).map_err(|_| error_code::UNKNOWN_ERROR)?;
         return Err(0);
     } else if pargs.contains("--print-default-config") {
         let toml =
@@ -85,7 +85,7 @@ pub(crate) fn parse_args<W: Write>(
             Err(error_code::UNPARSEABLE_CONFIG)
         }
     } else {
-        write!(output_writer, "{HELP}\n").map_err(|_| error_code::UNKNOWN_ERROR)?;
+        writeln!(output_writer, "{HELP}").map_err(|_| error_code::UNKNOWN_ERROR)?;
         return Err(error_code::ARGUMENT_ERROR);
     }
 }
