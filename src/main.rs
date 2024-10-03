@@ -1,10 +1,12 @@
 #![forbid(unsafe_code)]
+mod args;
 mod config;
 mod error_code;
 mod generator;
 mod handler;
 mod stream_body;
 
+use args::parse_args;
 use axum::{
     error_handling::HandleErrorLayer,
     http::{header::CONTENT_TYPE, HeaderMap, HeaderValue, StatusCode},
@@ -12,7 +14,7 @@ use axum::{
     routing::{get, on, MethodFilter},
     BoxError, Router,
 };
-use std::{fs, path::PathBuf, process::exit, sync::Arc, time::Duration};
+use std::{fs, process::exit, sync::Arc, time::Duration};
 use stream_body::StreamBody;
 use tokio::net::TcpListener;
 use tower::{buffer::BufferLayer, limit::RateLimitLayer, ServiceBuilder};
@@ -182,35 +184,32 @@ fn create_app(config: &Config) -> Result<Router, i32> {
 
 #[tokio::main]
 async fn main() {
-    // Who needs clap
-    let args: Vec<String> = std::env::args().collect();
-    let config: Config = if args.len() > 1 {
-        let pb = PathBuf::from(args[1].clone());
-        let c = Config::from_path(&pb);
-        if let Some(actual) = c {
-            actual
-        } else {
-            eprintln!(
-                "File at '{}' could not be parsed as proper config",
-                pb.to_string_lossy()
-            );
-            exit(error_code::UNPARSEABLE_CONFIG);
-        }
-    } else {
-        Config::read_from_default_path().unwrap_or_else(|| {
-            if let Some(pb) = Config::default_path() {
-                println!(
-                    "No config found at '{}', using a default instead...",
-                    pb.to_string_lossy(),
+    let pargs = pico_args::Arguments::from_env();
+    let config: Config = match parse_args(pargs, &mut std::io::stdout()) {
+        Ok(Some(config)) => config,
+        Ok(None) => Config::read_from_default_path()
+            .inspect(|_| {
+                eprintln!(
+                    "Using default config at '{}'",
+                    // unwrap is safe, we did read the config after all
+                    Config::default_path().unwrap().to_string_lossy()
                 );
-                Config::default()
-            } else {
-                println!(
-                    "Could not find home directory and config, using default config instead..."
-                );
-                Config::default()
-            }
-        })
+            })
+            .unwrap_or_else(|| {
+                if let Some(pb) = Config::default_path() {
+                    eprintln!(
+                        "No config found at '{}', using a default instead...",
+                        pb.to_string_lossy(),
+                    );
+                    Config::default()
+                } else {
+                    eprintln!(
+                        "Could not find home directory and config, using default config instead..."
+                    );
+                    Config::default()
+                }
+            }),
+        Err(code) => exit(code),
     };
 
     // Set up tracing
@@ -330,7 +329,7 @@ mod tests {
             let mut body = response.into_body().into_data_stream();
             for _ in 0..1000 {
                 match body.next().await {
-                    Some(b) => assert!(b.unwrap().len() > 0),
+                    Some(b) => assert!(!b.unwrap().is_empty()),
                     None => return false,
                 };
             }
@@ -496,7 +495,7 @@ mod tests {
 
         // First should be fine, it is never limited
         let first = body.next().await.unwrap().unwrap();
-        assert!(first.len() > 0);
+        assert!(!first.is_empty());
 
         // The next one should be over the limit and the stream should
         // have closed
@@ -528,10 +527,10 @@ mod tests {
 
         // First should be fine, it is never limited
         let first = body.next().await.unwrap().unwrap();
-        assert!(first.len() > 0);
+        assert!(!first.is_empty());
 
         // Take for a while
-        while Duration::from_millis(1010) > start_time.elapsed().unwrap() {
+        while Duration::from_millis(1050) > start_time.elapsed().unwrap() {
             let _ = body.next().await;
         }
 
