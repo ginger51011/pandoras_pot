@@ -530,7 +530,7 @@ mod tests {
         assert!(!first.is_empty());
 
         // Take for a while
-        while Duration::from_millis(1010) > start_time.elapsed().unwrap() {
+        while Duration::from_millis(1050) > start_time.elapsed().unwrap() {
             let _ = body.next().await;
         }
 
