@@ -1,4 +1,4 @@
-//! Functions for handligng function arguments.
+//! Functions for handling function arguments.
 
 use std::{ffi::OsStr, io::Write, path::PathBuf};
 
@@ -9,14 +9,14 @@ const HELP: &str = r#"pandoras_pot
 https://github.com/ginger51011/pandoras_pot
 
 High performance HTTP honeypot to punish unruly web crawlers with support for several different
-generator types for the infinite HTTP response. To configure the generator type, you can use the
+generator types for the infinite HTTP response. To use another generator type, you can use the
 following configuration for generator.type:
 
 type = { name = "markov_chain", data = "<path to some text file>" }
 or
 type = { name = "static", data = "<path to some file>" }
 
-More configration options listed in the project README.
+More configration options are listed in the project README.
 
 USAGE:
   pandoras_pot [FLAGS] [CONFIG]
@@ -29,11 +29,11 @@ ARGS:
 
 FLAGS:
   -h, --help                        Print help information and exit
-  -V, --version                     Print help information and exit
+  -V, --version                     Print version information and exit
       --print-default-config        Print default configuration and exit
 
 AUTHOR:
-  Written by Emil Jonathan Eriksson (github.com/ginger51011)"#;
+  Written by Emil Eriksson (github.com/ginger51011)"#;
 
 pub(crate) fn parse_path(s: &OsStr) -> Result<PathBuf, &'static str> {
     Ok(s.into())
@@ -44,6 +44,15 @@ pub(crate) fn parse_path(s: &OsStr) -> Result<PathBuf, &'static str> {
 ///
 /// Will print helpful information, so the caller should preferably exit using the provided code
 /// immediately if possible.
+///
+/// # Examples
+///
+/// ```
+//# use crate::{args::parse_args, config::Config};
+/// // Note: Please check the result of parse_args
+/// let pargs = pico_args::Arguments::from_env();
+/// let config: Config = parse_args(pargs, &mut std::io::stdout()).unwrap();
+/// ```
 pub(crate) fn parse_args<W: Write>(
     mut pargs: pico_args::Arguments,
     output_writer: &mut W,
@@ -55,8 +64,8 @@ pub(crate) fn parse_args<W: Write>(
         writeln!(output_writer, "{VERSION}",).map_err(|_| error_code::UNKNOWN_ERROR)?;
         return Err(0);
     } else if pargs.contains("--print-default-config") {
-        let toml =
-            toml::to_string_pretty(&Config::default()).expect("failed to serialize default config");
+        let toml = toml::to_string_pretty(&Config::default())
+            .expect("should be able to serialize default config");
         write!(output_writer, "{toml}").map_err(|_| error_code::UNKNOWN_ERROR)?;
         return Err(0);
     }
