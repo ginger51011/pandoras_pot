@@ -1,5 +1,8 @@
 //! This module contains error codes used by `pandoras_pot`
 
+/// Cannot parse arguments
+pub(crate) const ARGUMENT_ERROR: i32 = 1;
+
 /// Cannot deserialize config.
 pub(crate) const UNPARSEABLE_CONFIG: i32 = 10;
 
