@@ -16,7 +16,7 @@ type = { name = "markov_chain", data = "<path to some text file>" }
 or
 type = { name = "static", data = "<path to some file>" }
 
-More configration options are listed in the project README.
+More configuration options are listed in the project README.
 
 USAGE:
   pandoras_pot [FLAGS] [CONFIG]
