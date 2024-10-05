@@ -140,9 +140,7 @@ impl Generator {
                     }
 
                     // Limits were find, produce some data
-                    let s = if let Some(s) = gen.recv().await {
-                        s
-                    } else {
+                    let Some(s) = gen.recv().await else {
                         return;
                     };
 
@@ -218,9 +216,12 @@ mod tests {
 
             // Ensure all receivers have sent their first message
             for r in &mut receivers {
-                let _ = r
-                    .try_recv()
-                    .unwrap_or_else(|_| { panic!("{}", "Receiver within limit have not sent message".to_string()) });
+                let _ = r.try_recv().unwrap_or_else(|_| {
+                    panic!(
+                        "{}",
+                        "Receiver within limit have not sent message".to_string()
+                    )
+                });
             }
 
             // If we now attempt to use the original generator, it

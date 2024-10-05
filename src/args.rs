@@ -1,6 +1,6 @@
 //! Functions for handling function arguments.
 
-use std::{ffi::OsStr, io::Write, path::PathBuf};
+use std::{io::Write, path::PathBuf};
 
 use crate::{config::Config, error_code};
 
@@ -34,10 +34,6 @@ FLAGS:
 
 AUTHOR:
   Written by Emil Eriksson (github.com/ginger51011)"#;
-
-pub(crate) fn parse_path(s: &OsStr) -> Result<PathBuf, &'static str> {
-    Ok(s.into())
-}
 
 /// Parses arguments, and an optional provided [`Config`], or an exit code that should be used.
 /// Writes all output to the provided writer.
@@ -76,13 +72,7 @@ pub(crate) fn parse_args<W: Write>(
         Ok(None)
     } else if remaining.len() == 1 {
         let possible_path = &remaining[0];
-        let pb = parse_path(possible_path).map_err(|e| {
-            eprintln!(
-                "Failed to parse path '{}' due to error: {e}",
-                &possible_path.to_string_lossy()
-            );
-            error_code::ARGUMENT_ERROR
-        })?;
+        let pb = PathBuf::from(possible_path);
         let c = Config::from_path(&pb);
         if let Some(actual) = c {
             Ok(Some(actual))
@@ -142,7 +132,7 @@ mod tests {
 
     #[test]
     fn help_prints_help() {
-        for flag in ["-h", "--help"].iter() {
+        for flag in &["-h", "--help"] {
             let pargs = pico_args::Arguments::from_vec(vec![flag.into()]);
             let mut buf: Vec<u8> = vec![];
             let res = parse_args(pargs, &mut buf);
@@ -159,7 +149,7 @@ mod tests {
 
     #[test]
     fn version_prints_version() {
-        for flag in ["-V", "--version"].iter() {
+        for flag in &["-V", "--version"] {
             let pargs = pico_args::Arguments::from_vec(vec![flag.into()]);
             let mut buf: Vec<u8> = vec![];
             let res = parse_args(pargs, &mut buf);

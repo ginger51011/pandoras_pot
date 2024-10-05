@@ -65,6 +65,7 @@ impl<B> MakeSpan<B> for PandoraRequestSpan {
     }
 }
 
+#[allow(clippy::unused_async)]
 async fn text_stream(
     content_type: HeaderValue,
     gen: Generator,
@@ -94,8 +95,7 @@ fn create_app(config: &Config) -> Result<Router, i32> {
     // This will mess upp for example markov
     if config.generator.chunk_size < P_TAG_SIZE {
         eprintln!(
-            "generator.chunk_size too small (min size is {}, but it should be bigger!)",
-            P_TAG_SIZE
+            "generator.chunk_size too small (min size is {P_TAG_SIZE}, but it should be bigger!)"
         );
         return Err(error_code::GENERATOR_CHUNK_SIZE_TOO_SMALL);
     }
@@ -382,12 +382,11 @@ mod tests {
         test_routes.append(&mut config.http.routes);
 
         // But it should on these
-        for uri in test_routes.iter() {
+        for uri in &test_routes {
             assert!(
-                app_responds_on_uri(app.to_owned(), uri).await,
-                "app did not respond on {} but it should",
-                uri
-            )
+                app_responds_on_uri(app.clone(), uri).await,
+                "app did not respond on {uri} but it should"
+            );
         }
     }
 
@@ -402,19 +401,17 @@ mod tests {
         // It should not respond on these
         for uri in ["/", ".git", "/home"] {
             assert!(
-                !app_responds_on_uri(app.to_owned(), uri).await,
-                "app did respond on {} but it should not have",
-                uri
-            )
+                !app_responds_on_uri(app.clone(), uri).await,
+                "app did respond on {uri} but it should not have"
+            );
         }
 
         // But it should on these
         for uri in &config.http.routes {
             assert!(
-                app_responds_on_uri(app.to_owned(), uri).await,
-                "app did not respond on {} but it should",
-                uri
-            )
+                app_responds_on_uri(app.clone(), uri).await,
+                "app did not respond on {uri} but it should"
+            );
         }
     }
 

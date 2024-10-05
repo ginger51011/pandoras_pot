@@ -22,10 +22,7 @@ pub(crate) struct MarkovChain {
 impl MarkovChain {
     pub fn new(chunk_size: usize, input: &Path) -> Self {
         let content = fs::read_to_string(input).unwrap_or_else(|e| {
-            println!(
-                "Could not create Markov chain generator due to error:\n\t{}",
-                e
-            );
+            println!("Could not create Markov chain generator due to error:\n\t{e}");
             exit(error_code::CANNOT_READ_GENERATOR_DATA_FILE);
         });
 
@@ -63,12 +60,9 @@ impl GeneratorStrategy for MarkovChain {
                     }
 
                     let generated = &self.chain.generate_str(&mut smol_rng, likely_token_n);
-                    let generated_strs = match generated {
-                        Some(s) => s,
-                        None => {
-                            tracing::error!("failed to generate string from chain");
-                            continue;
-                        }
+                    let Some(generated_strs) = generated else {
+                        tracing::error!("failed to generate string from chain");
+                        continue;
                     };
 
                     // Cut off if we took too many

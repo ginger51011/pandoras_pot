@@ -65,7 +65,7 @@ pub(crate) struct HttpConfig {
     pub rate_limit_period: u64,
     /// Enables `http.health_port` to be used for health checks (to see if `pandoras_pot`).
     /// Useful if you want to use your chad gaming PC that might not always be up and running
-    /// to back up an instance running on your RPi 3 web server.
+    /// to back up an instance running on your `RPi` 3 web server.
     #[serde(default = "default_http_health_port_enabled")]
     pub health_port_enabled: bool,
     /// Port to be used for health checks. Should probably not be accessible from the
