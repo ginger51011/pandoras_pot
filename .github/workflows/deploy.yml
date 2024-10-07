@@ -17,7 +17,6 @@ jobs:
     strategy:
       matrix:
         include:
-          # I don't see any reason to support Window$
           - build: linux
             os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
@@ -30,17 +29,22 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Get the release version from the tag
+        shell: bash
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
+      - name: Sanity tests
+        run: cargo test --target ${{ matrix.target }}
       - name: Build
         run: cargo build --release --target ${{ matrix.target }}
       - name: Create archive
         shell: bash
         run: |
           binary_name="pandoras_pot"
-          dirname="$binary_name-${{ github.ref }}-${{ matrix.target }}"
+          dirname="$binary_name-${{ env.VERSION }}-${{ matrix.target }}"
           mkdir "$dirname"
           mv "target/${{ matrix.target }}/release/$binary_name" "$dirname"
           result="$dirname.tar.gz"
