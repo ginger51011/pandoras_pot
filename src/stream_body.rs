@@ -33,7 +33,7 @@ impl<'a> StreamBody<'a> {
     }
 }
 
-impl<'a> StreamBody<'a> {
+impl StreamBody<'_> {
     /// Set headers for the body.
     pub fn headers(mut self, headers: HeaderMap) -> Self {
         self.trailers = Some(headers);
@@ -41,7 +41,7 @@ impl<'a> StreamBody<'a> {
     }
 }
 
-impl<'a> http_body::Body for StreamBody<'a> {
+impl http_body::Body for StreamBody<'_> {
     type Data = Bytes;
     type Error = axum::Error;
 
