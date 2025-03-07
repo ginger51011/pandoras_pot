@@ -14,7 +14,7 @@ use std::{
 use crate::config::GeneratorConfig;
 use bytes::{Bytes, BytesMut};
 use futures::Stream;
-use tokio::sync::{mpsc, Semaphore};
+use tokio::sync::{Semaphore, mpsc};
 use tracing::Instrument;
 
 use self::{markov_strategy::MarkovChain, random_strategy::Random, static_strategy::Static};
@@ -86,7 +86,7 @@ impl Generator {
                     self.permits().available_permits()
                 );
 
-                let (gen_tx, mut gen) = mpsc::channel(self.config.chunk_buffer);
+                let (gen_tx, mut generator) = mpsc::channel(self.config.chunk_buffer);
                 strategy.start(gen_tx);
 
                 // Prepend so it kind of looks like a valid website
@@ -96,7 +96,7 @@ impl Generator {
                 // We don't want to just chain it, because then the first chunk of the body always
                 // looks the same.
                 let mut first_msg = BytesMut::from(self.config.prefix.as_str());
-                if let Some(first_gen) = gen.recv().await {
+                if let Some(first_gen) = generator.recv().await {
                     first_msg.extend(first_gen);
                 } else {
                     return;
@@ -140,7 +140,7 @@ impl Generator {
                     }
 
                     // Limits were find, produce some data
-                    let Some(s) = gen.recv().await else {
+                    let Some(s) = generator.recv().await else {
                         return;
                     };
 
@@ -182,7 +182,7 @@ mod tests {
 
     use crate::config::{GeneratorConfig, GeneratorType};
 
-    use super::{random_strategy::Random, Generator};
+    use super::{Generator, random_strategy::Random};
 
     /// The duration the sender to a [`Generator::into_receiver()`] is absolutely
     /// guaranteed to have acquired a permit and sent its first message.

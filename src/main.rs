@@ -68,22 +68,22 @@ impl<B> MakeSpan<B> for PandoraRequestSpan {
 #[allow(clippy::unused_async)]
 async fn text_stream(
     content_type: HeaderValue,
-    gen: Generator,
-    gen_strategy: GeneratorStrategyContainer,
+    generator: Generator,
+    generator_strategy: GeneratorStrategyContainer,
 ) -> impl IntoResponse {
     // Set some headers to trick le bots
     let mut headers = HeaderMap::new();
     headers.insert(CONTENT_TYPE, content_type);
 
-    match gen_strategy {
+    match generator_strategy {
         GeneratorStrategyContainer::Random(g) => {
-            StreamBody::from_stream(gen.into_stream(g)).headers(headers)
+            StreamBody::from_stream(generator.into_stream(g)).headers(headers)
         }
         GeneratorStrategyContainer::MarkovChain(g) => {
-            StreamBody::from_stream(gen.into_stream(g)).headers(headers)
+            StreamBody::from_stream(generator.into_stream(g)).headers(headers)
         }
         GeneratorStrategyContainer::Static(g) => {
-            StreamBody::from_stream(gen.into_stream(g)).headers(headers)
+            StreamBody::from_stream(generator.into_stream(g)).headers(headers)
         }
     }
 }
