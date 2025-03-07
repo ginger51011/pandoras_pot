@@ -1,8 +1,8 @@
 [package]
 name = "pandoras_pot"
-version = "0.7.1"
+version = "0.7.2"
 authors = ["Emil Jonathan Eriksson <github.com/ginger51011>"]
-edition = "2021"
+edition = "2024"
 description = "Honeypot designed to send huge amounts of data to rude web scrapers"
 keywords = ["honeypot", "web", "http"]
 categories = ["text-processing", "network-programming"]
