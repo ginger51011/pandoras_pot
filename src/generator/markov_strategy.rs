@@ -47,12 +47,12 @@ impl GeneratorStrategy for MarkovChain {
 
             loop {
                 let mut result = String::with_capacity(desired_size + 100);
-                'outer: while result.as_bytes().len() < desired_size {
+                'outer: while result.len() < desired_size {
                     // We don't want to check result size every time, but we cannot know
                     // how large a token is. But most of them are (probably English) words,
                     // most words are 5 chars long and each English UTF-8 char
                     // is 1 byte. So we take a guess and see later.
-                    let size_left = desired_size - result.as_bytes().len();
+                    let size_left = desired_size - result.len();
                     let likely_token_n = size_left / 5;
 
                     if likely_token_n == 0 {
@@ -69,7 +69,7 @@ impl GeneratorStrategy for MarkovChain {
                     let mut current_size = 0;
                     for s in generated_strs {
                         result.push_str(s);
-                        current_size += s.as_bytes().len();
+                        current_size += s.len();
                         if current_size > size_left {
                             break 'outer;
                         }
