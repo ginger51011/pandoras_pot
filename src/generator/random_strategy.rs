@@ -1,7 +1,7 @@
 use crate::config::GeneratorConfig;
 use bytes::Bytes;
 use rand::{
-    distributions::{Alphanumeric, DistString},
+    distr::{Alphanumeric, SampleString},
     rngs::SmallRng,
     SeedableRng,
 };
@@ -29,7 +29,7 @@ impl GeneratorStrategy for Random {
         tokio::task::spawn_blocking(move || {
             let _entered = span.enter();
             // No need to be secure, we are smacking bots
-            let mut smol_rng = SmallRng::from_entropy();
+            let mut smol_rng = SmallRng::from_os_rng();
             loop {
                 let s = Alphanumeric.sample_string(&mut smol_rng, self.chunk_size - P_TAG_SIZE);
                 let res = Bytes::from(format!("<p>\n{s}\n</p>\n"));

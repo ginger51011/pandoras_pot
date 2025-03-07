@@ -43,7 +43,7 @@ impl GeneratorStrategy for MarkovChain {
         tokio::task::spawn_blocking(move || {
             let _entered = span.enter();
             let desired_size = self.chunk_size - P_TAG_SIZE;
-            let mut smol_rng = SmallRng::from_entropy();
+            let mut smol_rng = SmallRng::from_os_rng();
 
             loop {
                 let mut result = String::with_capacity(desired_size + 100);
