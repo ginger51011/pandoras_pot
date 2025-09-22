@@ -31,7 +31,7 @@ rand = { version = "0.9", features = ["small_rng"] }
 serde = { version = "1.0", features = [ "derive" ]}
 tokio-stream = { version = "0.1" }
 tokio = { version = "1", features = ["full"] }
-toml = "0.9.5"
+toml = "0.9.7"
 tower-http = { version = "0.6", default-features = false, features = ["trace"] }
 tower = { version = "0.5", default-features = false, features = ["limit", "buffer"] }
 tracing = "0.1"
