@@ -85,7 +85,7 @@ pub(crate) fn parse_args<W: Write>(
         }
     } else {
         writeln!(output_writer, "{HELP}").map_err(|_| error_code::UNKNOWN_ERROR)?;
-        return Err(error_code::ARGUMENT_ERROR);
+        Err(error_code::ARGUMENT_ERROR)
     }
 }
 
