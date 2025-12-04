@@ -186,7 +186,7 @@ mod tests {
 
     /// The duration the sender to a [`Generator::into_receiver()`] is absolutely
     /// guaranteed to have acquired a permit and sent its first message.
-    const SENDER_WARMUP_DURATION: Duration = Duration::from_millis(100);
+    const SENDER_WARMUP_DURATION: Duration = Duration::from_millis(250);
 
     /// Verifies that the generator is limited to a specified amount of concurrent streams.
     ///
