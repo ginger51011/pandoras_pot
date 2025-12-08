@@ -21,7 +21,7 @@ codegen-units = 1
 
 [dependencies]
 axum = { version = "0.8", default-features = false, features = ["http1", "http2", "matched-path", "original-uri", "tokio", "tower-log", "tracing"]}
-bytes = "1.8.0"
+bytes = "1.11.0"
 futures = "0.3.30"
 home = "0.5.11"
 http-body = "1.0.1"
